@@ -20,7 +20,7 @@ static error_t parser(int, char *, struct argp_state *);
 #pragma GCC visibility push(default)
 error_t argp_err_exit_status = EXIT_FAILURE;
 void (*argp_program_version_hook)(FILE *, struct argp_state *) = &print_version;
-const char *argp_program_bug_address = "https://github.com/NVIDIA/libnvidia-container/issues";
+const char *argp_program_bug_address = "https://github.com/NVIDIA/libxpu-container/issues";
 #pragma GCC visibility pop
 
 static struct argp usage = {
@@ -36,6 +36,7 @@ static struct argp usage = {
                 {"info", 0, NULL, OPTION_DOC|OPTION_NO_USAGE, "Report information about the driver and devices", 0},
                 {"list", 0, NULL, OPTION_DOC|OPTION_NO_USAGE, "List driver components", 0},
                 {"configure", 0, NULL, OPTION_DOC|OPTION_NO_USAGE, "Configure a container with GPU support", 0},
+                {"cxpu", 0, NULL, OPTION_DOC|OPTION_NO_USAGE, "Control CXPU(Container XPU) capabilities", 0},
                 {0},
         },
         parser,
@@ -50,6 +51,7 @@ static const struct command commands[] = {
         {"info", &info_usage, &info_command},
         {"list", &list_usage, &list_command},
         {"configure", &configure_usage, &configure_command},
+        {"cxpu", &cxpu_usage, &cxpu_command},
 };
 
 static void

@@ -24,7 +24,7 @@ WITH_TIRPC   ?= no
 WITH_SECCOMP ?= yes
 
 DOCKER       ?= docker
-LIB_NAME     ?= libnvidia-container
+LIB_NAME     ?= libxpu-container
 PLATFORM     ?= $(shell uname -m)
 
 DIST_DIR     ?= $(CURDIR)/dist
@@ -123,8 +123,8 @@ docker-amd64-verify: $(patsubst %, %-verify, $(AMD64_TARGETS)) \
 --debian%: OS := debian
 --amazonlinux%: OS := amazonlinux
 
-# For the ubuntu18.04 arm64 target we add a dependency on libnvidia-container0 to ensure that libnvidia-container-tools also supports Jetson devices
---ubuntu18.04-arm64: LIBNVIDIA_CONTAINER0_DEPENDENCY = libnvidia-container0 (= 0.9.0~beta.1) | libnvidia-container0 (>= 0.10.0+jetpack)
+# For the ubuntu18.04 arm64 target we add a dependency on libxpu-container0 to ensure that libxpu-container-tools also supports Jetson devices
+--ubuntu18.04-arm64: LIBNVIDIA_CONTAINER0_DEPENDENCY = libxpu-container0 (= 0.9.0~beta.1) | libxpu-container0 (>= 0.10.0+jetpack)
 
 # private centos target with overrides
 --centos%: OS := centos
@@ -182,7 +182,7 @@ docker-verify-%: %
 	    --runtime=nvidia  \
 	    -e NVIDIA_VISIBLE_DEVICES=all \
 	    --rm $(BUILDIMAGE) \
-	    bash -c "make install; LD_LIBRARY_PATH=/usr/local/lib/  nvidia-container-cli -k -d /dev/tty info"
+	    bash -c "make install; LD_LIBRARY_PATH=/usr/local/lib/  xpu-container-cli -k -d /dev/tty info"
 
 docker-clean:
 	IMAGES=$$(docker images "nvidia/$(LIB_NAME)/*" --format="{{.ID}}"); \

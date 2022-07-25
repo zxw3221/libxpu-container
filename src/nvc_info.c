@@ -59,13 +59,7 @@ static void clear_mig_device_info(struct nvc_mig_device_info *);
  */
 
 static const char * const utility_bins[] = {
-        "nvidia-smi",                       /* System management interface */
-        "nvidia-debugdump",                 /* GPU coredump utility */
-        "nvidia-persistenced",              /* Persistence mode utility */
-        "nv-fabricmanager",                 /* NVSwitch fabrimanager utility */
-        //"nvidia-modprobe",                /* Kernel module loader */
-        //"nvidia-settings",                /* X server settings */
-        //"nvidia-xconfig",                 /* X xorg.conf editor */
+        "xpu_smi",                          /* System management interface */
 };
 
 static const char * const compute_bins[] = {
@@ -74,66 +68,30 @@ static const char * const compute_bins[] = {
 };
 
 static const char * const utility_libs[] = {
-        "libnvidia-ml.so",                  /* Management library */
-        "libnvidia-cfg.so",                 /* GPU configuration */
-        "libnvidia-nscq.so",                /* Topology info for NVSwitches and GPUs */
+        "libxpuml.so.1",                      /* Management library */
+        "libxpurt.so",                      /* Management library */
 };
 
 static const char * const compute_libs[] = {
         "libcuda.so",                       /* CUDA driver library */
-        "libcudadebugger.so",               /* CUDA Debugger Library */
-        "libnvidia-opencl.so",              /* NVIDIA OpenCL ICD */
-        "libnvidia-ptxjitcompiler.so",      /* PTX-SASS JIT compiler (used by libcuda) */
-        "libnvidia-fatbinaryloader.so",     /* fatbin loader (used by libcuda) */
-        "libnvidia-allocator.so",           /* NVIDIA allocator runtime library */
-        "libnvidia-compiler.so",            /* NVVM-PTX compiler for OpenCL (used by libnvidia-opencl) */
-        "libnvidia-pkcs11.so",              /* Encrypt/Decrypt library */
 };
 
 static const char * const video_libs[] = {
-        "libvdpau_nvidia.so",               /* NVIDIA VDPAU ICD */
-        "libnvidia-encode.so",              /* Video encoder */
-        "libnvidia-opticalflow.so",         /* NVIDIA Opticalflow library */
-        "libnvcuvid.so",                    /* Video decoder */
 };
 
 static const char * const graphics_libs[] = {
-        //"libnvidia-egl-wayland.so",       /* EGL wayland platform extension (used by libEGL_nvidia) */
-        "libnvidia-eglcore.so",             /* EGL core (used by libGLES*[_nvidia] and libEGL_nvidia) */
-        "libnvidia-glcore.so",              /* OpenGL core (used by libGL or libGLX_nvidia) */
-        "libnvidia-tls.so",                 /* Thread local storage (used by libGL or libGLX_nvidia) */
-        "libnvidia-glsi.so",                /* OpenGL system interaction (used by libEGL_nvidia) */
-        "libnvidia-fbc.so",                 /* Framebuffer capture */
-        "libnvidia-ifr.so",                 /* OpenGL framebuffer capture */
-        "libnvidia-rtcore.so",              /* Optix */
-        "libnvoptix.so",                    /* Optix */
 };
 
 static const char * const graphics_libs_glvnd[] = {
-        //"libGLX.so",                      /* GLX ICD loader */
-        //"libOpenGL.so",                   /* OpenGL ICD loader */
-        //"libGLdispatch.so",               /* OpenGL dispatch (used by libOpenGL, libEGL and libGLES*) */
-        "libGLX_nvidia.so",                 /* OpenGL/GLX ICD */
-        "libEGL_nvidia.so",                 /* EGL ICD */
-        "libGLESv2_nvidia.so",              /* OpenGL ES v2 ICD */
-        "libGLESv1_CM_nvidia.so",           /* OpenGL ES v1 common profile ICD */
-        "libnvidia-glvkspirv.so",           /* SPIR-V Lib for Vulkan */
-        "libnvidia-cbl.so",                 /* VK_NV_ray_tracing */
 };
 
 static const char * const graphics_libs_compat[] = {
-        "libGL.so",                         /* OpenGL/GLX legacy _or_ compatibility wrapper (GLVND) */
-        "libEGL.so",                        /* EGL legacy _or_ ICD loader (GLVND) */
-        "libGLESv1_CM.so",                  /* OpenGL ES v1 common profile legacy _or_ ICD loader (GLVND) */
-        "libGLESv2.so",                     /* OpenGL ES v2 legacy _or_ ICD loader (GLVND) */
 };
 
 static const char * const ngx_libs[] = {
-        "libnvidia-ngx.so",                 /* NGX library */
 };
 
 static const char * const dxcore_libs[] = {
-        "libdxcore.so",                     /* Core library for dxcore support */
 };
 
 static int
@@ -505,7 +463,9 @@ lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driv
                         has_modeset = 1;
                 }
                 nvidiactl.path = (char *)NV_CTL_DEVICE_PATH;
-                nvidiactl.id = makedev(NV_DEVICE_MAJOR, NV_CTL_DEVICE_MINOR);
+                struct stat dev_stat;
+                stat(NV_CTL_DEVICE_PATH, &dev_stat);
+                nvidiactl.id = dev_stat.st_rdev;
                 has_nvidiactl = 1;
         }
 
@@ -560,103 +520,27 @@ lookup_ipcs(struct error *err, struct nvc_driver_info *info, const char *root, i
 }
 
 static int
-fill_mig_device_info(struct nvc_context *ctx, bool mig_enabled, struct driver_device *drv_device, struct nvc_device *device)
+config_cxpus(struct nvc_context *ctx, int cxpu_count)
 {
-        // Initialize local variables.
-        struct nvc_mig_device_info *info = &device->mig_devices;
-        struct driver_device *mig_device;
-        unsigned int count = 0;
+    struct driver_device *dev;
+    struct error *err = &ctx->err;
+    int i;
 
-        // Clear out the 'gpu_instance_info' struct embedded in the device.
-        memset(info, 0, sizeof(*info));
+    for (i = 0; i < cxpu_count; i++) {
+        if (driver_get_device(err, i, &dev) < 0)
+            goto fail;
 
-        // If MIG is not enabled, we have nothing more to do, so exit.
-        if (!mig_enabled)
-            return 0;
-
-        // Otherwise, get the max count of MIG devices for the given device
-        // from the driver.
-        if (driver_get_device_max_mig_device_count(&ctx->err, drv_device, &count) < 0)
-                goto fail;
-
-        // Allocate space in 'devices' to hold all of the MIG devices.
-        if ((info->devices = xcalloc(&ctx->err, count, sizeof(struct nvc_mig_device))) == NULL)
-                goto fail;
-
-        // Populate 'mig_device_info' with information about the MIG devices
-        // pulled from the driver.
-        for (unsigned int i = 0; i < count; ++i) {
-                // Get a reference to the MIG device at this index.
-                if (driver_get_device_mig_device(&ctx->err, drv_device, i, &mig_device) < 0)
-                        goto fail;
-
-               // If no MIG device exists at this index, then we are done. Due
-               // to races, there may (temporarily) be more devices further on
-               // in the list, but we won't detect them.
-               if (mig_device == NULL)
-                        break;
-
-                // Get the ID of the GPU Instance for this MIG device from the driver.
-                if (driver_get_device_gpu_instance_id(&ctx->err, mig_device, &info->devices[i].gi) < 0)
-                        goto fail;
-
-                // Get the ID of the Compute Instance for this MIG device from the driver.
-                if (driver_get_device_compute_instance_id(&ctx->err, mig_device, &info->devices[i].ci) < 0)
-                        goto fail;
-
-                // Set a reference back to the device associated with the
-                // current MIG device.
-                info->devices[i].parent = device;
-
-                // Populate the UUID of the MIG device.
-                if (driver_get_device_uuid(&ctx->err, mig_device, &info->devices[i].uuid) < 0)
-                        goto fail;
-
-                // Build a path to the MIG caps inside '/proc' associated
-                // with GPU Instance of the MIG device and set it inside
-                // 'info->devices[i]'.
-                if (xasprintf(&ctx->err, &info->devices[i].gi_caps_path, NV_GPU_INST_CAPS_PATH, minor(device->node.id), info->devices[i].gi) < 0)
-                        goto fail;
-
-                // Build a path to the MIG caps inside '/proc' associated
-                // with the Compute Instance of the MIG device and set it
-                // inside 'info->devices[i]'.
-                if (xasprintf(&ctx->err, &info->devices[i].ci_caps_path, NV_COMP_INST_CAPS_PATH, minor(device->node.id), info->devices[i].gi, info->devices[i].ci) < 0)
-                        goto fail;
-
-                // If we made it to here, update the total count of MIG dervices by 1
-                info->ndevices++;
+        if (ctx->cfg.cxpu_enable) {
+            driver_create_device_cxpu(err, dev, ctx->cfg.cxpu_user_id);
+            driver_set_device_memory_limit(err, dev, ctx->cfg.cxpu_user_id, 0,
+                    ctx->cfg.cxpu_mem_limit_inbytes / cxpu_count);
+        } else {
+            driver_destroy_device_cxpu(err, dev, ctx->cfg.cxpu_user_id);
         }
+    }
 
-        return (0);
-
- fail:
-        // On failure, free all driver memory associated with the GPU Instances
-        // and also free any memory allocated for the 'gpu_instance_info'
-        // itself before returning.
-        clear_mig_device_info(info);
+    fail:
         return (-1);
-}
-
-static void
-clear_mig_device_info(struct nvc_mig_device_info *info)
-{
-        // Walk through each element in the MIG devices array and free any
-        // memory associated with it.
-        for (size_t i = 0; info->devices != NULL && i < info->ndevices; ++i) {
-                // Free the memory allocated for the UUID of the mig device.
-                free(info->devices[i].uuid);
-                // Free the memory allocated for the GPU Instance caps path.
-                free(info->devices[i].gi_caps_path);
-                // Free the memory allocated for the Compute Instance caps path.
-                free(info->devices[i].ci_caps_path);
-        }
-
-        // Free the memory for the device array itself.
-        free(info->devices);
-
-        // Zero out the info struct.
-        memset(info, 0, sizeof(*info));
 }
 
 static int
@@ -695,21 +579,23 @@ init_nvc_device(struct nvc_context *ctx, unsigned int index, struct nvc_device *
         }
         else
         {
+
+                gpu->mig_capable = 0;
+                gpu->mig_caps_path = NULL;
+                gpu->mig_devices.ndevices = 0;
+                gpu->mig_devices.devices = NULL;
+
                 if (driver_get_device_minor(err, dev, &minor) < 0)
                         goto fail;
+#if 0
                 if (xasprintf(err, &gpu->mig_caps_path, NV_GPU_CAPS_PATH, minor) < 0)
                         goto fail;
-                if (xasprintf(err, &gpu->node.path, NV_DEVICE_PATH, minor) < 0)
+#endif
+                if (xasprintf(err, &gpu->node.path, NV_DEVICE_PATH, index) < 0)
                         goto fail;
-                if (driver_get_device_mig_capable(err, dev, &gpu->mig_capable) < 0)
-                        goto fail;
-                if (driver_get_device_mig_enabled(err, dev, &mig_enabled) < 0)
-                        goto fail;
-                gpu->node.id = makedev(NV_DEVICE_MAJOR, minor);
-
-                if (fill_mig_device_info(ctx, mig_enabled, dev, gpu) < 0)
-                    goto fail;
-
+                 struct stat dev_stat;
+                stat(gpu->node.path, &dev_stat);
+                gpu->node.id = dev_stat.st_rdev;
                 log_infof("listing device %s (%s at %s)", gpu->node.path, gpu->uuid, gpu->busid);
         }
 
@@ -819,7 +705,6 @@ nvc_device_info_new(struct nvc_context *ctx, const char *opts)
                 return (NULL);
         */
 
-        log_infof("requesting device information with '%s'", opts);
         if ((info = xcalloc(&ctx->err, 1, sizeof(*info))) == NULL)
                 return (NULL);
 
@@ -830,6 +715,8 @@ nvc_device_info_new(struct nvc_context *ctx, const char *opts)
         info->gpus = gpu = xcalloc(&ctx->err, info->ngpus, sizeof(*info->gpus));
         if (info->gpus == NULL)
                 goto fail;
+
+        config_cxpus(ctx, n);
 
         for (unsigned int i = 0; i < n; ++i, ++gpu) {
                 rv = init_nvc_device(ctx, i, gpu);
@@ -854,9 +741,7 @@ nvc_device_info_free(struct nvc_device_info *info)
                 free(info->gpus[i].busid);
                 free(info->gpus[i].arch);
                 free(info->gpus[i].brand);
-                free(info->gpus[i].mig_caps_path);
                 free(info->gpus[i].node.path);
-                clear_mig_device_info(&info->gpus[i].mig_devices);
         }
         free(info->gpus);
         free(info);

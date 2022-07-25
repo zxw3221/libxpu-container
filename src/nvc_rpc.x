@@ -143,6 +143,28 @@ union driver_get_device_compute_instance_id_res switch (int errcode) {
                 string errmsg<>;
 };
 
+union driver_set_device_memory_limit_res switch (int errcode) {
+        case 0:
+                void;
+        default:
+                string errmsg<>;
+};
+
+union driver_create_device_cxpu_res switch (int errcode) {
+        case 0:
+                void;
+        default:
+                string errmsg<>;
+};
+
+union driver_destroy_device_cxpu_res switch (int errcode) {
+        case 0:
+                void;
+        default:
+                string errmsg<>;
+};
+
+
 program DRIVER_PROGRAM {
         version DRIVER_VERSION {
                 driver_init_res DRIVER_INIT(ptr_t) = 1;
@@ -157,11 +179,9 @@ program DRIVER_PROGRAM {
                 driver_get_device_arch_res DRIVER_GET_DEVICE_ARCH(ptr_t, ptr_t) = 10;
                 driver_get_device_model_res DRIVER_GET_DEVICE_MODEL(ptr_t, ptr_t) = 11;
                 driver_get_device_brand_res DRIVER_GET_DEVICE_BRAND(ptr_t, ptr_t) = 12;
-                driver_get_device_mig_mode_res DRIVER_GET_DEVICE_MIG_MODE(ptr_t, ptr_t) = 13;
-                driver_get_device_max_mig_device_count_res DRIVER_GET_DEVICE_MAX_MIG_DEVICE_COUNT(ptr_t, ptr_t) = 14;
-                driver_get_device_mig_device_res DRIVER_GET_DEVICE_MIG_DEVICE(ptr_t, ptr_t, unsigned int) = 15;
-                driver_get_device_gpu_instance_id_res DRIVER_GET_DEVICE_GPU_INSTANCE_ID(ptr_t, ptr_t) = 16;
-                driver_get_device_compute_instance_id_res DRIVER_GET_DEVICE_COMPUTE_INSTANCE_ID(ptr_t, ptr_t) = 17;
+                driver_set_device_memory_limit_res DRIVER_SET_DEVICE_MEMORY_LIMIT(ptr_t, ptr_t, ptr_t, unsigned int, uint64_t) = 17;
+                driver_create_device_cxpu_res DRIVER_CREATE_DEVICE_CXPU(ptr_t, ptr_t, ptr_t) = 18;
+                driver_destroy_device_cxpu_res DRIVER_DESTROY_DEVICE_CXPU(ptr_t, ptr_t, ptr_t) = 19;
         } = 1;
 } = 1;
 

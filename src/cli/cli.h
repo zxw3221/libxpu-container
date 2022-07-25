@@ -51,6 +51,11 @@ struct context {
         bool list_ipcs;
         bool list_firmwares;
 
+        /* cxpu */
+        bool cxpu_enable;
+        char cxpu_user_id[CXPU_MAX_USER_ID_LEN + 1];
+        uint64_t cxpu_mem_limit_inbytes;
+
         char *devices;
         char *mig_config;
         char *mig_monitor;
@@ -95,9 +100,11 @@ int select_mig_monitor_devices(
 extern const struct argp info_usage;
 extern const struct argp list_usage;
 extern const struct argp configure_usage;
+extern const struct argp cxpu_usage;
 
 int info_command(const struct context *);
 int list_command(const struct context *);
 int configure_command(const struct context *);
+int cxpu_command(const struct context *);
 
 #endif /* HEADER_CLI_H */

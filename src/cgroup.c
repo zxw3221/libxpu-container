@@ -57,7 +57,7 @@ nvcgo_get_device_cgroup_version_1_svc(ptr_t ctxptr, char *proc_root, pid_t pid, 
         // Explicitly set CAP_EFFECTIVE to NVC_CONTAINER across the
         // 'GetDeviceCGroupVersion()' call.  This is only done because we
         // happen to know these are the effective capabilities set by the
-        // nvidia-container-cli (i.e. the only known user of this library)
+        // xpu-container-cli (i.e. the only known user of this library)
         // anytime this RPC handler is invoked. In the future we should
         // consider setting effective capabilities on the server to match
         // whatever capabilities were in effect in the client when the RPC call
@@ -120,7 +120,7 @@ nvcgo_find_device_cgroup_path_1_svc(ptr_t ctxptr, int dev_cg_version, char *proc
         // Explicitly set CAP_EFFECTIVE to NVC_CONTAINER across the
         // 'GetDeviceCGroupMountPath()' and 'GetDeviceCGroupRootPath()' calls.
         // This is only done because we happen to know these are the effective
-        // capabilities set by the nvidia-container-cli (i.e. the only known
+        // capabilities set by the xpu-container-cli (i.e. the only known
         // user of this library) anytime this RPC handler is invoked. In the
         // future we should consider setting effective capabilities on the
         // server to match whatever capabilities were in effect in the client
@@ -206,7 +206,7 @@ nvcgo_setup_device_cgroup_1_svc(ptr_t ctxptr, int dev_cg_version, char *dev_cg, 
 
         // Explicitly set CAP_EFFECTIVE to NVC_MOUNT across the 'AddDeviceRules()' call.
         // This is only done because we happen to know these are the effective
-        // capabilities set by the nvidia-container-cli (i.e. the only known
+        // capabilities set by the xpu-container-cli (i.e. the only known
         // user of this library) anytime this RPC handler is invoked. In the
         // future we should consider setting effective capabilities on the
         // server to match whatever capabilities were in effect in the client

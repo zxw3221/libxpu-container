@@ -11,7 +11,7 @@ exec_prefix=$exec_prefix
 libdir=$libdir
 includedir=$includedir
 
-Name: libnvidia-container
+Name: libxpu-container
 Description: NVIDIA container library
 Version: $VERSION
 Libs: -L\${libdir} -lnvidia-container

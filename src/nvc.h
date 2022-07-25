@@ -25,8 +25,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define NVC_MAJOR   1
-#define NVC_MINOR   10
+#define NVC_MAJOR   0
+#define NVC_MINOR   1
 #define NVC_PATCH   0
 
 // Specify the release tag.
@@ -34,13 +34,15 @@ extern "C" {
 // For release candidates, this should be defined with the format "rc.1"
 // The version string should also be updated accordingly, using a ~ separator where applicable.
 #define NVC_TAG
-#define NVC_VERSION "1.10.0"
+#define NVC_VERSION "0.1.0"
 
 #define NVC_ARG_MAX 256
 
 #define NVC_NVCAPS_STYLE_NONE 0
 #define NVC_NVCAPS_STYLE_PROC 1
 #define NVC_NVCAPS_STYLE_DEV  2
+
+#define CXPU_MAX_USER_ID_LEN 12
 
 struct nvc_context;
 struct nvc_container;
@@ -57,6 +59,10 @@ struct nvc_config {
         char *ldcache;
         uid_t uid;
         gid_t gid;
+
+        bool cxpu_enable;
+        char cxpu_user_id[CXPU_MAX_USER_ID_LEN + 1];
+        uint64_t cxpu_mem_limit_inbytes;
 };
 
 struct nvc_device_node {

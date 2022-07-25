@@ -17,7 +17,7 @@
 
 ##### Global variables #####
 
-WITH_NVCGO   ?= yes
+WITH_NVCGO   ?= no
 WITH_LIBELF  ?= no
 WITH_TIRPC   ?= no
 WITH_SECCOMP ?= yes
@@ -92,6 +92,7 @@ BIN_SRCS     := $(SRCS_DIR)/cli/common.c    \
                 $(SRCS_DIR)/cli/list.c      \
                 $(SRCS_DIR)/cli/main.c      \
                 $(SRCS_DIR)/cli/libnvc.c    \
+                $(SRCS_DIR)/cli/cxpu.c      \
                 $(SRCS_DIR)/error_generic.c \
                 $(SRCS_DIR)/utils.c
 
@@ -123,8 +124,8 @@ ifneq ($(VERSION_STRING),$(VERSION)$(if $(TAG),~$(TAG),))
 $(error Version not updated correctly: $(VERSION_STRING) != $(VERSION)$(if $(TAG),~$(TAG),))
 endif
 
-BIN_NAME    := nvidia-container-cli
-LIB_NAME    := libnvidia-container
+BIN_NAME    := xpu-container-cli
+LIB_NAME    := libxpu-container
 LIB_STATIC  := $(LIB_NAME).a
 LIB_SHARED  := $(LIB_NAME).so.$(VERSION)
 LIB_SONAME  := $(LIB_NAME).so.$(MAJOR)

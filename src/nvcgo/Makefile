@@ -23,7 +23,7 @@ MAJOR   ?= 1
 
 PKG_NAME := nvcgo
 
-LIB_NAME    ?= libnvidia-container-go
+LIB_NAME    ?= libxpu-container-go
 LIB_SHARED  ?= $(LIB_NAME).so.$(VERSION)
 LIB_SONAME  ?= $(LIB_NAME).so.$(MAJOR)
 

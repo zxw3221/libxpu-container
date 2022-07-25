@@ -41,7 +41,7 @@ ENV WITH_LIBELF=${WITH_LIBELF}
 ENV WITH_TIRPC=${WITH_TIRPC}
 ENV WITH_SECCOMP=${WITH_SECCOMP}
 
-WORKDIR /tmp/libnvidia-container
+WORKDIR /tmp/libxpu-container
 COPY . .
 
 ARG REVISION
@@ -52,7 +52,7 @@ RUN export META_NOECHO=echo && \
     make distclean && make -j"$(nproc)"
 
 # Use the revision as the package version for the time being
-ENV PKG_NAME libnvidia-container
+ENV PKG_NAME libxpu-container
 ENV PKG_VERS ${REVISION}
 ENV DIST_DIR=/tmp/${PKG_NAME}-${PKG_VERS}
 RUN mkdir -p $DIST_DIR /dist

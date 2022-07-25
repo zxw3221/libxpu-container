@@ -1,23 +1,23 @@
-# libnvidia-container
+# libxpu-container
 
-[![GitHub license](https://img.shields.io/badge/license-New%20BSD-blue.svg?style=flat-square)](https://raw.githubusercontent.com/NVIDIA/libnvidia-container/main/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/NVIDIA/libnvidia-container/all.svg?style=flat-square)](https://github.com/NVIDIA/libnvidia-container/releases)
-[![Package repository](https://img.shields.io/badge/packages-repository-b956e8.svg?style=flat-square)](https://nvidia.github.io/libnvidia-container)
-[![Travis](https://img.shields.io/travis/NVIDIA/libnvidia-container.svg?style=flat-square)](https://travis-ci.org/NVIDIA/libnvidia-container)
-[![Coverity Scan](https://img.shields.io/coverity/scan/12444.svg?style=flat-square)](https://scan.coverity.com/projects/nvidia-libnvidia-container)
-[![LGTM](https://img.shields.io/lgtm/grade/cpp/g/NVIDIA/libnvidia-container.svg?style=flat-square)](https://lgtm.com/projects/g/NVIDIA/libnvidia-container/alerts/)
+[![GitHub license](https://img.shields.io/badge/license-New%20BSD-blue.svg?style=flat-square)](https://raw.githubusercontent.com/NVIDIA/libxpu-container/main/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/NVIDIA/libxpu-container/all.svg?style=flat-square)](https://github.com/NVIDIA/libxpu-container/releases)
+[![Package repository](https://img.shields.io/badge/packages-repository-b956e8.svg?style=flat-square)](https://nvidia.github.io/libxpu-container)
+[![Travis](https://img.shields.io/travis/NVIDIA/libxpu-container.svg?style=flat-square)](https://travis-ci.org/NVIDIA/libxpu-container)
+[![Coverity Scan](https://img.shields.io/coverity/scan/12444.svg?style=flat-square)](https://scan.coverity.com/projects/nvidia-libxpu-container)
+[![LGTM](https://img.shields.io/lgtm/grade/cpp/g/NVIDIA/libxpu-container.svg?style=flat-square)](https://lgtm.com/projects/g/NVIDIA/libxpu-container/alerts/)
 
 This repository provides a library and a simple CLI utility to automatically configure GNU/Linux containers leveraging NVIDIA hardware.\
 The implementation relies on kernel primitives and is designed to be agnostic of the container runtime.
 
 ## Installing the library
 ### From packages
-Configure the [package repository](https://nvidia.github.io/libnvidia-container/) for your Linux distribution.
+Configure the [package repository](https://nvidia.github.io/libxpu-container/) for your Linux distribution.
 
 Install the packages:
 ```bash
-libnvidia-container1
-libnvidia-container-tools
+libxpu-container1
+libxpu-container-tools
 ```
 
 ### From sources
@@ -30,7 +30,7 @@ make {ubuntu18.04, ubuntu16.04, debian10, debian9, centos7, amazonlinux2, opensu
 make docker
 ````
 
-The resulting images have the name `nvidia/libnvidia-container/<os>:<version>`
+The resulting images have the name `nvidia/libxpu-container/<os>:<version>`
 
 Without Docker:
 ```bash
@@ -65,7 +65,7 @@ mount -t tmpfs none tmp
 mount -t tmpfs none run
 
 # Isolate the first GPU device along with basic utilities
-nvidia-container-cli --load-kmods configure --ldconfig=@/sbin/ldconfig.real --no-cgroups --utility --device 0 $(pwd)
+xpu-container-cli --load-kmods configure --ldconfig=@/sbin/ldconfig.real --no-cgroups --utility --device 0 $(pwd)
 
 # Change into the new rootfs
 pivot_root . mnt
@@ -78,14 +78,14 @@ nvidia-smi -L
 
 ## Copyright and License
 
-This project is released under the [BSD 3-clause license](https://github.com/NVIDIA/libnvidia-container/blob/main/LICENSE).
+This project is released under the [BSD 3-clause license](https://github.com/NVIDIA/libxpu-container/blob/main/LICENSE).
 
 Additionally, this project can be dynamically linked with libelf from the elfutils package (https://sourceware.org/elfutils), in which case additional terms apply.\
-Refer to [NOTICE](https://github.com/NVIDIA/libnvidia-container/blob/main/NOTICE) for more information.
+Refer to [NOTICE](https://github.com/NVIDIA/libxpu-container/blob/main/NOTICE) for more information.
 
 ## Issues and Contributing
 
 [Checkout the Contributing document!](CONTRIBUTING.md)
 
-* Please let us know by [filing a new issue](https://github.com/NVIDIA/libnvidia-container/issues/new)
+* Please let us know by [filing a new issue](https://github.com/NVIDIA/libxpu-container/issues/new)
 * You can contribute by opening a [pull request](https://help.github.com/articles/using-pull-requests/)

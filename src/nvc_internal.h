@@ -24,14 +24,14 @@
 #include "dxcore.h"
 
 #define SONAME_LIBCUDA  "libcuda.so.1"
-#define SONAME_LIBNVML  "libnvidia-ml.so.1"
-#define SONAME_LIBNVCGO "libnvidia-container-go.so.1"
+#define SONAME_LIBXPUML  "/usr/local/xpu/lib64/libxpuml.so.1"
+#define SONAME_LIBNVCGO "libxpu-container-go.so.1"
 
-#define NV_DEVICE_MAJOR          195
-#define NV_CTL_DEVICE_MINOR      255
+#define NV_DEVICE_MAJOR          239
+#define NV_CTL_DEVICE_MINOR      128
 #define NV_MODESET_DEVICE_MINOR  254
-#define NV_DEVICE_PATH           _PATH_DEV "nvidia%d"
-#define NV_CTL_DEVICE_PATH       _PATH_DEV "nvidiactl"
+#define NV_DEVICE_PATH           _PATH_DEV "xpu%d"
+#define NV_CTL_DEVICE_PATH       _PATH_DEV "xpuctrl"
 #define NV_UVM_DEVICE_PATH       _PATH_DEV "nvidia-uvm"
 #define NV_UVM_TOOLS_DEVICE_PATH _PATH_DEV "nvidia-uvm-tools"
 #define NV_MODESET_DEVICE_PATH   _PATH_DEV "nvidia-modeset"
@@ -56,7 +56,8 @@
 #define NV_MIG_CONFIG_FILE     "config"
 #define NV_MIG_MONITOR_FILE    "monitor"
 
-#define CUDA_RUNTIME_DIR         "/usr/local/cuda"
+#define CUDA_RUNTIME_DIR         "/usr/local/xpu"
+#define XPU_RUNTIME_DIR         "/usr/local/xpu"
 
 #define NV_FIRMWARE_PATH        "/lib/firmware/nvidia"
 #define NV_FIRMWARE_DRIVER_PATH NV_FIRMWARE_PATH "/%s/gsp.bin"

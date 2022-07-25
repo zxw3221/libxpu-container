@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "cli.h"
-#include "nvml.h"
+#include "xpuml.h"
 
 bool 
 matches_pci_format(const char *gpu, char *buf, size_t bufsize) {
@@ -184,7 +184,7 @@ select_gpu_device(
         }
 
         // Check if dev matches a PCI bus ID.
-        char buf[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE + 1];
+        char buf[XPUML_DEVICE_PCI_BUS_ID_BUFFER_SIZE + 1];
         if (matches_pci_format(dev, buf, sizeof(buf))) {
                 for (size_t i = 0; i < available->ngpus; ++i) {
                         if (!strncasecmp(available->gpus[i].busid, buf, strlen(buf))) {

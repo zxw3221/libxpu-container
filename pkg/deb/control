@@ -1,10 +1,10 @@
-Source: libnvidia-container
+Source: libxpu-container
 Build-Depends: debhelper (>=9)
 Standards-Version: 3.9.6
 Maintainer: NVIDIA CORPORATION <cudatools@nvidia.com>
-Homepage: https://github.com/NVIDIA/libnvidia-container
+Homepage: https://github.com/NVIDIA/libxpu-container
 
-Package: libnvidia-container@MAJOR@
+Package: libxpu-container@MAJOR@
 Section: @SECTION@libs
 Priority: optional
 Architecture: any
@@ -18,12 +18,12 @@ Description: NVIDIA container runtime library
  .
  This package requires the NVIDIA driver (>= 340.29) to be installed separately.
 
-Package: libnvidia-container-dev
+Package: libxpu-container-dev
 Section: @SECTION@libdevel
 Priority: optional
 Architecture: any
 Multi-Arch: same
-Depends: libnvidia-container@MAJOR@ (= ${binary:Version}), ${misc:Depends}
+Depends: libxpu-container@MAJOR@ (= ${binary:Version}), ${misc:Depends}
 Description: NVIDIA container runtime library (development files)
  The nvidia-container library provides an interface to configure GNU/Linux
  containers leveraging NVIDIA hardware. The implementation relies on several
@@ -31,12 +31,12 @@ Description: NVIDIA container runtime library (development files)
  .
  This package contains the files required to compile programs with the library.
 
-Package: libnvidia-container@MAJOR@-dbg
+Package: libxpu-container@MAJOR@-dbg
 Section: @SECTION@debug
 Priority: optional
 Architecture: any
 Multi-Arch: same
-Depends: libnvidia-container@MAJOR@ (= ${binary:Version}), ${misc:Depends}
+Depends: libxpu-container@MAJOR@ (= ${binary:Version}), ${misc:Depends}
 Description: NVIDIA container runtime library (debugging symbols)
  The nvidia-container library provides an interface to configure GNU/Linux
  containers leveraging NVIDIA hardware. The implementation relies on several
@@ -44,7 +44,7 @@ Description: NVIDIA container runtime library (debugging symbols)
  .
  This package contains the debugging symbols for the library.
 
-Package: libnvidia-container-tools
+Package: libxpu-container-tools
 Section: @SECTION@utils
 Priority: optional
 Architecture: any

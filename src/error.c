@@ -9,7 +9,7 @@
 
 #include <libelf.h>
 
-#include "nvml.h"
+#include "xpuml.h"
 
 #include "error.h"
 
@@ -28,19 +28,19 @@ error_set_elf(struct error *err, const char *fmt, ...)
 }
 
 int
-error_set_nvml(struct error *err, void *handle, int errcode, const char *fmt, ...)
+error_set_xpuml(struct error *err, void *handle, int errcode, const char *fmt, ...)
 {
-        static union {void *ptr; char *(*fn)(nvmlReturn_t);} errfn;
+        static union {void *ptr; char *(*fn)(xpumlReturn_t);} errfn;
         const char *errmsg = "unknown error";
         va_list ap;
         int rv;
 
         if (errfn.ptr == NULL) {
                 dlerror();
-                errfn.ptr = dlsym(handle, "nvmlErrorString");
+                errfn.ptr = dlsym(handle, "xpumlErrorString");
         }
         if (errfn.ptr != NULL || dlerror() == NULL)
-                errmsg = (*errfn.fn)((nvmlReturn_t)errcode);
+                errmsg = (*errfn.fn)((xpumlReturn_t)errcode);
 
         va_start(ap, fmt);
         rv = error_vset(err, errcode, errmsg, fmt, ap);

@@ -347,6 +347,10 @@ copy_config(struct error *err, struct nvc_context *ctx, const struct nvc_config 
                 ctx->cfg.gid = (gid_t)gid;
         }
 
+        ctx->cfg.cxpu_enable = cfg->cxpu_enable;
+        ctx->cfg.cxpu_mem_limit_inbytes = cfg->cxpu_mem_limit_inbytes;
+        strncpy(ctx->cfg.cxpu_user_id, cfg->cxpu_user_id, CXPU_MAX_USER_ID_LEN);
+
         log_infof("using root %s", ctx->cfg.root);
         log_infof("using ldcache %s", ctx->cfg.ldcache);
         log_infof("using unprivileged user %"PRIu32":%"PRIu32, (uint32_t)ctx->cfg.uid, (uint32_t)ctx->cfg.gid);

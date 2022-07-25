@@ -1,4 +1,4 @@
-libnvidia-container.so.1 libnvidia-container1 #MINVER#
+libxpu-container.so.1 libxpu-container1 #MINVER#
  NVC_1.0@NVC_1.0 @VERSION_TAG@
  nvc_config_free@NVC_1.0 @VERSION_TAG@
  nvc_config_new@NVC_1.0 @VERSION_TAG@
@@ -13,10 +13,6 @@ libnvidia-container.so.1 libnvidia-container1 #MINVER#
  nvc_nvcaps_style@NVC_1.0 @VERSION_TAG@
  nvc_nvcaps_device_from_proc_path@NVC_1.0 @VERSION_TAG@
  nvc_device_mount@NVC_1.0 @VERSION_TAG@
- nvc_mig_device_access_caps_mount@NVC_1.0 @VERSION_TAG@
- nvc_mig_config_global_caps_mount@NVC_1.0 @VERSION_TAG@
- nvc_mig_monitor_global_caps_mount@NVC_1.0 @VERSION_TAG@
- nvc_device_mig_caps_mount@NVC_1.0 @VERSION_TAG@
  nvc_driver_info_free@NVC_1.0 @VERSION_TAG@
  nvc_driver_info_new@NVC_1.0 @VERSION_TAG@
  nvc_driver_mount@NVC_1.0 @VERSION_TAG@

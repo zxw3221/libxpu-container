@@ -2,7 +2,7 @@
 #export DH_VERBOSE = 1
 
 override_dh_fixperms:
-	dh_fixperms -X libnvidia-container.so.@VERSION@
+	dh_fixperms -X libxpu-container.so.@VERSION@
 
 %:
 	dh $@

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2017-2018, NVIDIA CORPORATION. All rights reserved.
  *
- * This file is part of libnvidia-container.
+ * This file is part of libxpu-container.
  * If this file is being compiled and dynamically linked against libelf from the
  * elfutils package (usually characterized by the definition of the macro `WITH_LIBELF'),
  * the following license notice covers the use of said library along with the terms from

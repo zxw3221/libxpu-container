@@ -30,7 +30,7 @@ struct libnvc libnvc = {0};
 
 static const char *tegra_release_file = "/etc/nv_tegra_release";
 static const char *tegra_family_file = "/sys/devices/soc0/family";
-static const char *libnvc_v0_soname= "libnvidia-container.so.0";
+static const char *libnvc_v0_soname= "libxpu-container.so.0";
 static const char *libnvml_soname= "libnvidia-ml.so.1";
 
 static struct libnvc libnvc_v0_wrapped = {0};
@@ -157,10 +157,6 @@ load_libnvc_v1(void)
         load_libnvc_func(version);
         load_libnvc_func(nvcaps_style);
         load_libnvc_func(nvcaps_device_from_proc_path);
-        load_libnvc_func(mig_device_access_caps_mount);
-        load_libnvc_func(mig_config_global_caps_mount);
-        load_libnvc_func(mig_monitor_global_caps_mount);
-        load_libnvc_func(device_mig_caps_mount);
 
         return (0);
 }
