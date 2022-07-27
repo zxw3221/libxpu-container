@@ -34,7 +34,6 @@ VERSION {
             nvc_driver_mount;
             nvc_device_mount;
             nvc_nvcaps_style;
-            nvc_nvcaps_device_from_proc_path;
 
             __ubsan_default_options;
         local:

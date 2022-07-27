@@ -12,7 +12,7 @@
 
 int error_set_elf(struct error *, const char *, ...)
     __attribute__((format(printf, 2, 3), nonnull(2)));
-int error_set_nvml(struct error *, void *, int, const char *, ...)
+int error_set_xpuml(struct error *, void *, int, const char *, ...)
     __attribute__((format(printf, 4, 5), nonnull(4)));
 int error_set_rpc(struct error *, int, const char *, ...)
     __attribute__((format(printf, 3, 4), nonnull(3)));

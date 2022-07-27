@@ -6,7 +6,6 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <nvidia-modprobe-utils.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,11 +41,7 @@ static int find_path(struct error *, const char *, const char *, const char *, c
 static int lookup_paths(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t, const char *);
 static int lookup_libraries(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t, const char *);
 static int lookup_binaries(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t);
-static int lookup_firmwares(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t);
 static int lookup_devices(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t);
-static int lookup_ipcs(struct error *, struct nvc_driver_info *, const char *, int32_t);
-static int fill_mig_device_info(struct nvc_context *, bool mig_enabled, struct driver_device *, struct nvc_device *);
-static void clear_mig_device_info(struct nvc_mig_device_info *);
 
 /*
  * Display libraries are not needed.
@@ -63,17 +58,12 @@ static const char * const utility_bins[] = {
 };
 
 static const char * const compute_bins[] = {
-        "nvidia-cuda-mps-control",          /* Multi process service CLI */
-        "nvidia-cuda-mps-server",           /* Multi process service server */
 };
 
 static const char * const utility_libs[] = {
-        "libxpuml.so.1",                      /* Management library */
-        "libxpurt.so",                      /* Management library */
 };
 
 static const char * const compute_libs[] = {
-        "libcuda.so",                       /* CUDA driver library */
 };
 
 static const char * const video_libs[] = {
@@ -110,21 +100,9 @@ select_libraries(struct error *err, void *ptr, const char *root, const char *ori
                 return (-1);
 
         lib = basename(alt_path);
-        if (str_has_prefix(lib, "libnvidia-tls.so")) {
-                /* Only choose the TLS library using the new ABI (kernel 2.3.99). */
-                if ((rv = elftool_has_abi(&et, (uint32_t[3]){0x02, 0x03, 0x63})) != true)
-                        goto done;
-        }
         /* Check the driver version. */
         if ((rv = str_has_suffix(lib, info->nvrm_version)) == false)
                 goto done;
-        if (str_array_match_prefix(lib, graphics_libs_compat, nitems(graphics_libs_compat))) {
-                /* Only choose OpenGL/EGL libraries issued by NVIDIA. */
-                if ((rv = elftool_has_dependency(&et, "libnvidia-glcore.so")) != false)
-                        goto done;
-                if ((rv = elftool_has_dependency(&et, "libnvidia-eglcore.so")) != false)
-                        goto done;
-        }
 
  done:
         if (rv)
@@ -322,11 +300,6 @@ lookup_paths(struct error *err, struct dxcore_context *dxcore, struct nvc_driver
                 return (-1);
         }
 
-        if (lookup_firmwares(err, dxcore, info, root, flags) < 0) {
-                log_err("error looking up additional paths");
-                return (-1);
-        }
-
         return (0);
 }
 
@@ -387,48 +360,6 @@ lookup_binaries(struct error *err, struct dxcore_context* dxcore, struct nvc_dri
 }
 
 static int
-lookup_firmwares(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info, const char *root, int32_t flags) {
-        (void)flags;
-        char **ptr;
-        int rc = -1;
-
-        char *firmware_path = NULL;
-        char *resolved_path = NULL;
-
-        if (dxcore->initialized) {
-                log_info("skipping path lookup for dxcore");
-                return 0;
-        }
-
-        // If the NVIDIA driver firmware path exists, include this in the mounted folders.
-        if (xasprintf(err, &firmware_path, NV_FIRMWARE_DRIVER_PATH, info->nvrm_version) < 0) {
-                log_errf("error constructing firmware path for %s", info->nvrm_version);
-                return (-1);
-        }
-        if (find_path(err, "firmware", root, firmware_path, &resolved_path) < 0) {
-                log_errf("error finding firmware path %s", firmware_path);
-                goto cleanup;
-        }
-        if (resolved_path == NULL) {
-                rc = 0;
-                goto cleanup;
-        }
-
-        info->nfirmwares = 1;
-        info->firmwares = ptr = array_new(err, info->nfirmwares);
-        if (info->firmwares == NULL) {
-                log_err("error creating path array");
-                goto cleanup;
-        }
-        info->firmwares[0] = firmware_path;
-        return (0);
-
-cleanup:
-        free(firmware_path);
-        return (rc);
-}
-
-static int
 lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info, const char *root, int32_t flags)
 {
         struct nvc_device_node uvm, uvm_tools, modeset, nvidiactl, dxg, *node;
@@ -439,29 +370,8 @@ lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driv
         int has_modeset = 0;
 
         if (dxcore->initialized) {
-                struct stat dxgDeviceStat;
-
-                if (xstat(err, (char *)MSFT_DXG_DEVICE_PATH, &dxgDeviceStat) < 0) {
-                        log_errf("failed to query device information for %s", MSFT_DXG_DEVICE_PATH);
-                        return (-1);
-                }
-
-                dxg.path = (char *)MSFT_DXG_DEVICE_PATH;
-                dxg.id = dxgDeviceStat.st_rdev;
-                has_dxg = 1;
         }
         else {
-                if (!(flags & OPT_NO_UVM)) {
-                        if ((has_uvm = find_device_node(err, root, NV_UVM_DEVICE_PATH, &uvm)) < 0)
-                                return (-1);
-                        if ((has_uvm_tools = find_device_node(err, root, NV_UVM_TOOLS_DEVICE_PATH, &uvm_tools)) < 0)
-                                return (-1);
-                }
-                if (!(flags & OPT_NO_MODESET)) {
-                        modeset.path = (char *)NV_MODESET_DEVICE_PATH;
-                        modeset.id = makedev(NV_DEVICE_MAJOR, NV_MODESET_DEVICE_MINOR);
-                        has_modeset = 1;
-                }
                 nvidiactl.path = (char *)NV_CTL_DEVICE_PATH;
                 struct stat dev_stat;
                 stat(NV_CTL_DEVICE_PATH, &dev_stat);
@@ -491,51 +401,22 @@ lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driv
 }
 
 static int
-lookup_ipcs(struct error *err, struct nvc_driver_info *info, const char *root, int32_t flags)
-{
-        char **ptr;
-        const char *mps;
-
-        info->nipcs = 3;
-        info->ipcs = ptr = array_new(err, info->nipcs);
-        if (info->ipcs == NULL)
-                return (-1);
-
-        if (!(flags & OPT_NO_PERSISTENCED)) {
-                if (find_path(err, "ipc", root, NV_PERSISTENCED_SOCKET, ptr++) < 0)
-                        return (-1);
-        }
-        if (!(flags & OPT_NO_FABRICMANAGER)) {
-                if (find_path(err, "ipc", root, NV_FABRICMANAGER_SOCKET, ptr++) < 0)
-                        return (-1);
-        }
-        if (!(flags & OPT_NO_MPS)) {
-                if ((mps = secure_getenv("CUDA_MPS_PIPE_DIRECTORY")) == NULL)
-                        mps = NV_MPS_PIPE_DIR;
-                if (find_path(err, "ipc", root, mps, ptr++) < 0)
-                        return (-1);
-        }
-        array_pack(info->ipcs, &info->nipcs);
-        return (0);
-}
-
-static int
-config_cxpus(struct nvc_context *ctx, int cxpu_count)
+config_cxpus(struct nvc_context *ctx, unsigned int cxpu_count)
 {
     struct driver_device *dev;
     struct error *err = &ctx->err;
-    int i;
+    unsigned int i;
 
     for (i = 0; i < cxpu_count; i++) {
         if (driver_get_device(err, i, &dev) < 0)
             goto fail;
 
         if (ctx->cfg.cxpu_enable) {
-            driver_create_device_cxpu(err, dev, ctx->cfg.cxpu_user_id);
-            driver_set_device_memory_limit(err, dev, ctx->cfg.cxpu_user_id, 0,
+            driver_create_cxpu_instance(err, dev, ctx->cfg.cxpu_user_id);
+            driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_user_id, 0,
                     ctx->cfg.cxpu_mem_limit_inbytes / cxpu_count);
         } else {
-            driver_destroy_device_cxpu(err, dev, ctx->cfg.cxpu_user_id);
+            driver_destroy_cxpu_instance(err, dev, ctx->cfg.cxpu_user_id);
         }
     }
 
@@ -548,7 +429,6 @@ init_nvc_device(struct nvc_context *ctx, unsigned int index, struct nvc_device *
 {
         struct driver_device *dev;
         struct error *err = &ctx->err;
-        bool mig_enabled;
         unsigned int minor;
 
         if (driver_get_device(err, index, &dev) < 0)
@@ -661,8 +541,6 @@ nvc_driver_info_new(struct nvc_context *ctx, const char *opts)
                 goto fail;
         if (lookup_devices(&ctx->err, &ctx->dxcore, info, ctx->cfg.root, flags) < 0)
                 goto fail;
-        if (lookup_ipcs(&ctx->err, info, ctx->cfg.root, flags) < 0)
-                goto fail;
         return (info);
 
  fail:
@@ -750,35 +628,5 @@ nvc_device_info_free(struct nvc_device_info *info)
 int
 nvc_nvcaps_style(void)
 {
-        if (nvidia_get_chardev_major(NV_CAPS_MODULE_NAME) >= 0)
-                return NVC_NVCAPS_STYLE_DEV;
-        if (file_exists(NULL, NV_PROC_DRIVER_CAPS) >= 0)
-                return NVC_NVCAPS_STYLE_PROC;
-        return NVC_NVCAPS_STYLE_NONE;
-}
-
-int
-nvc_nvcaps_device_from_proc_path(struct nvc_context *ctx, const char *cap_path, struct nvc_device_node *node)
-{
-        char abs_cap_path[PATH_MAX];
-        char dev_name[PATH_MAX];
-        int major, minor;
-        int rv = -1;
-
-        if (path_join(&ctx->err, abs_cap_path, ctx->cfg.root, cap_path) < 0)
-                goto fail;
-
-        if (nvidia_cap_get_device_file_attrs(abs_cap_path, &major, &minor, dev_name) == 0) {
-                error_set(&ctx->err, "unable to get cap device attributes: %s", cap_path);
-                goto fail;
-        }
-
-        if ((node->path = xstrdup(&ctx->err, dev_name)) == NULL)
-                goto fail;
-        node->id = makedev((unsigned int)major, (unsigned int)minor);
-
-        rv = 0;
-
-fail:
-        return (rv);
+        return NVC_NVCAPS_STYLE_DEV;
 }

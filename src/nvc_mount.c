@@ -10,7 +10,6 @@
 #include <libgen.h>
 #undef basename /* Use the GNU version of basename. */
 #include <limits.h>
-#include <nvidia-modprobe-utils.h>
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
@@ -27,21 +26,14 @@
 static char **mount_files(struct error *, const char *, const struct nvc_container *, const char *, char *[], size_t);
 static char **mount_driverstore_files(struct error *, const char *, const struct nvc_container *, const char *, const char *[], size_t);
 static char *mount_directory(struct error *, const char *, const struct nvc_container *, const char *);
-static char *mount_firmware(struct error *, const char *, const struct nvc_container *, const char *);
 static char *mount_with_flags(struct error *, const char *, const char *,  uid_t, uid_t, unsigned long);
 static char *mount_device(struct error *, const char *, const struct nvc_container *, const struct nvc_device_node *);
-static char *mount_ipc(struct error *, const char *, const struct nvc_container *, const char *);
-static char *mount_procfs(struct error *, const char *, const struct nvc_container *);
-static char *mount_procfs_gpu(struct error *, const char *, const struct nvc_container *, const char *);
-static char *mount_app_profile(struct error *, const struct nvc_container *);
-static int  update_app_profile(struct error *, const struct nvc_container *, dev_t);
 static void unmount(const char *);
 static int  symlink_library(struct error *, const char *, const char *, const char *, uid_t, gid_t);
 static int  symlink_libraries(struct error *, const struct nvc_container *, const char * const [], size_t);
 static void filter_libraries(const struct nvc_driver_info *, char * [], size_t *);
 static int  device_mount_dxcore(struct nvc_context *, const struct nvc_container *);
 static int  device_mount_native(struct nvc_context *, const struct nvc_container *, const struct nvc_device *);
-static int  cap_device_mount(struct nvc_context *, const struct nvc_container *, const char *);
 
 static char *
 mount_directory(struct error *err, const char *root, const struct nvc_container *cnt, const char *dir)
@@ -52,21 +44,7 @@ mount_directory(struct error *err, const char *root, const struct nvc_container 
                 return (NULL);
         if (path_resolve_full(err, dst, cnt->cfg.rootfs, dir) < 0)
                 return (NULL);
-        return mount_with_flags(err, src, dst, cnt->uid, cnt->gid, MS_NOSUID|MS_NOEXEC);
-}
-
-// mount_firmware mounts the specified firmware file. The path specified is the container path and is resolved
-// on the host before mounting.
-static char *
-mount_firmware(struct error *err, const char *root, const struct nvc_container *cnt, const char *container_path)
-{
-        char src[PATH_MAX];
-        char dst[PATH_MAX];
-        if (path_resolve_full(err, src, root, container_path) < 0)
-                return (NULL);
-        if (path_join(err, dst, cnt->cfg.rootfs, container_path) < 0)
-                return (NULL);
-        return mount_with_flags(err, src, dst, cnt->uid, cnt->gid, MS_RDONLY|MS_NODEV|MS_NOSUID);
+        return mount_with_flags(err, src, dst, cnt->uid, cnt->gid, MS_NOSUID|MS_RDONLY);
 }
 
 // mount_with_flags bind mounts the specified src to the the specified dst with the specified mount flags
@@ -240,217 +218,6 @@ mount_device(struct error *err, const char *root, const struct nvc_container *cn
         return (NULL);
 }
 
-static char *
-mount_ipc(struct error *err, const char *root, const struct nvc_container *cnt, const char *ipc)
-{
-        char src[PATH_MAX];
-        char dst[PATH_MAX];
-        mode_t mode;
-        char *mnt;
-
-        if (path_join(err, src, root, ipc) < 0)
-                return (NULL);
-        if (path_resolve_full(err, dst, cnt->cfg.rootfs, ipc) < 0)
-                return (NULL);
-        if (file_mode(err, src, &mode) < 0)
-                return (NULL);
-        if (file_create(err, dst, NULL, cnt->uid, cnt->gid, mode) < 0)
-                return (NULL);
-
-        log_infof("mounting %s at %s", src, dst);
-        if (xmount(err, src, dst, NULL, MS_BIND, NULL) < 0)
-                goto fail;
-        if (xmount(err, NULL, dst, NULL, MS_BIND|MS_REMOUNT | MS_NODEV|MS_NOSUID|MS_NOEXEC, NULL) < 0)
-                goto fail;
-        if ((mnt = xstrdup(err, dst)) == NULL)
-                goto fail;
-        return (mnt);
-
- fail:
-        unmount(dst);
-        return (NULL);
-}
-
-static char *
-mount_app_profile(struct error *err, const struct nvc_container *cnt)
-{
-        char path[PATH_MAX];
-        char *mnt;
-
-        if (path_resolve_full(err, path, cnt->cfg.rootfs, NV_APP_PROFILE_DIR) < 0)
-                return (NULL);
-        if (file_create(err, path, NULL, cnt->uid, cnt->gid, MODE_DIR(0555)) < 0)
-                return (NULL);
-
-        log_infof("mounting tmpfs at %s", path);
-        if (xmount(err, "tmpfs", path, "tmpfs", 0, "mode=0555") < 0)
-                goto fail;
-        /* XXX Some kernels require MS_BIND in order to remount within a userns */
-        if (xmount(err, NULL, path, NULL, MS_BIND|MS_REMOUNT | MS_NODEV|MS_NOSUID|MS_NOEXEC, NULL) < 0)
-                goto fail;
-        if ((mnt = xstrdup(err, path)) == NULL)
-                goto fail;
-        return (mnt);
-
- fail:
-        unmount(path);
-        return (NULL);
-}
-
-static int
-update_app_profile(struct error *err, const struct nvc_container *cnt, dev_t id)
-{
-        char path[PATH_MAX];
-        char *buf = NULL;
-        char *ptr;
-        uintmax_t n;
-        uint64_t dev;
-        int rv = -1;
-
-#define profile quote_str({\
-        "profiles": [{"name": "_container_", "settings": ["EGLVisibleDGPUDevices", 0x%lx]}],\
-        "rules": [{"pattern": [], "profile": "_container_"}]\
-})
-
-        dev = 1ull << minor(id);
-        if (path_resolve_full(err, path, cnt->cfg.rootfs, NV_APP_PROFILE_DIR "/10-container.conf") < 0)
-                return (-1);
-        if (file_read_text(err, path, &buf) < 0) {
-                if (err->code != ENOENT)
-                        goto fail;
-                if (xasprintf(err, &buf, profile, dev) < 0)
-                        goto fail;
-        } else {
-                if ((ptr = strstr(buf, "0x")) == NULL ||
-                    (n = strtoumax(ptr, NULL, 16)) == UINTMAX_MAX) {
-                        error_setx(err, "invalid application profile: %s", path);
-                        goto fail;
-                }
-                free(buf), buf = NULL;
-                if (xasprintf(err, &buf, profile, (uint64_t)n|dev) < 0)
-                        goto fail;
-        }
-        if (file_create(err, path, buf, cnt->uid, cnt->gid, MODE_REG(0555)) < 0)
-                goto fail;
-        rv = 0;
-
-#undef profile
-
- fail:
-        free(buf);
-        return (rv);
-}
-
-static char *
-mount_procfs(struct error *err, const char *root, const struct nvc_container *cnt)
-{
-        char src[PATH_MAX];
-        char dst[PATH_MAX];
-        char *src_end, *dst_end, *mnt, *param;
-        mode_t mode;
-        char *buf = NULL;
-        const char *files[] = {
-                "params",
-                "version",
-                "registry",
-        };
-
-        if (path_join(err, src, root, NV_PROC_DRIVER) < 0)
-                return (NULL);
-        if (path_resolve_full(err, dst, cnt->cfg.rootfs, NV_PROC_DRIVER) < 0)
-                return (NULL);
-        src_end = src + strlen(src);
-        dst_end = dst + strlen(dst);
-
-        log_infof("mounting tmpfs at %s", dst);
-        if (xmount(err, "tmpfs", dst, "tmpfs", 0, "mode=0555") < 0)
-                return (NULL);
-
-        for (size_t i = 0; i < nitems(files); ++i) {
-                if (path_append(err, src, files[i]) < 0)
-                        goto fail;
-                if (path_append(err, dst, files[i]) < 0)
-                        goto fail;
-                if (file_mode(err, src, &mode) < 0) {
-                        if (err->code == ENOENT) {
-                                log_warnf("%s not found; skipping", src);
-                                // We reset the strings to ensure that the paths are
-                                // not concatenated if one of the files is not found.
-                                *src_end = '\0';
-                                *dst_end = '\0';
-                                continue;
-                        }
-                        goto fail;
-                }
-                if (file_read_text(err, src, &buf) < 0)
-                        goto fail;
-                /* Prevent NVRM from adjusting the device nodes. */
-                if (i == 0 && (param = strstr(buf, "ModifyDeviceFiles: 1")) != NULL)
-                        param[19] = '0';
-                if (file_create(err, dst, buf, cnt->uid, cnt->gid, mode) < 0)
-                        goto fail;
-                *src_end = '\0';
-                *dst_end = '\0';
-                free(buf);
-                buf = NULL;
-        }
-        /* XXX Some kernels require MS_BIND in order to remount within a userns */
-        if (xmount(err, NULL, dst, NULL, MS_BIND|MS_REMOUNT | MS_NODEV|MS_NOSUID|MS_NOEXEC, NULL) < 0)
-                goto fail;
-        if ((mnt = xstrdup(err, dst)) == NULL)
-                goto fail;
-        return (mnt);
-
- fail:
-        *dst_end = '\0';
-        unmount(dst);
-        free(buf);
-        return (NULL);
-}
-
-static char *
-mount_procfs_gpu(struct error *err, const char *root, const struct nvc_container *cnt, const char *busid)
-{
-        char src[PATH_MAX];
-        char dst[PATH_MAX] = {0};
-        char *gpu = NULL;
-        char *mnt = NULL;
-        mode_t mode;
-
-        for (int off = 0;; off += 4) {
-                /* XXX Check if the driver procfs uses 32-bit or 16-bit PCI domain */
-                if (xasprintf(err, &gpu, "%s/gpus/%s", NV_PROC_DRIVER, busid + off) < 0)
-                        return (NULL);
-                if (path_join(err, src, root, gpu) < 0)
-                        goto fail;
-                if (path_resolve_full(err, dst, cnt->cfg.rootfs, gpu) < 0)
-                        goto fail;
-                if (file_mode(err, src, &mode) == 0)
-                        break;
-                if (err->code != ENOENT || off != 0)
-                        goto fail;
-                *dst = '\0';
-                free(gpu);
-                gpu = NULL;
-        }
-        if (file_create(err, dst, NULL, cnt->uid, cnt->gid, mode) < 0)
-                goto fail;
-
-        log_infof("mounting %s at %s", src, dst);
-        if (xmount(err, src, dst, NULL, MS_BIND, NULL) < 0)
-                goto fail;
-        if (xmount(err, NULL, dst, NULL, MS_BIND|MS_REMOUNT | MS_RDONLY|MS_NODEV|MS_NOSUID|MS_NOEXEC, NULL) < 0)
-                goto fail;
-        if ((mnt = xstrdup(err, dst)) == NULL)
-                goto fail;
-        free(gpu);
-        return (mnt);
-
- fail:
-        free(gpu);
-        unmount(dst);
-        return (NULL);
-}
 
 static void
 unmount(const char *path)
@@ -588,36 +355,6 @@ device_mount_native(struct nvc_context *ctx, const struct nvc_container *cnt, co
         return (rv);
 }
 
-static int
-cap_device_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const char *cap_path)
-{
-        char *dev_mnt = NULL;
-        struct nvc_device_node node = {0};
-        int rv = -1;
-
-        if (nvc_nvcaps_device_from_proc_path(ctx, cap_path, &node) < 0)
-                goto fail;
-
-        if (!(cnt->flags & OPT_NO_DEVBIND)) {
-                if ((dev_mnt = mount_device(&ctx->err, ctx->cfg.root, cnt, &node)) == NULL)
-                       goto fail;
-        }
-        if (!(cnt->flags & OPT_NO_CGROUPS))
-                if (setup_device_cgroup(&ctx->err, cnt, node.id) < 0)
-                        goto fail;
-
-        rv = 0;
-
- fail:
-        if (rv < 0) {
-                unmount(dev_mnt);
-        }
-
-        free(node.path);
-        free(dev_mnt);
-
-        return (rv);
-}
 
 int
 nvc_driver_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const struct nvc_driver_info *info)
@@ -656,6 +393,8 @@ nvc_driver_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const
 #endif
 
         /* Host binary and library mounts */
+        if (cnt->cfg.cudart_dir != NULL)
+            mount_directory(&ctx->err, ctx->cfg.root, cnt, cnt->cfg.cudart_dir);
         if (info->bins != NULL && info->nbins > 0) {
                 if ((tmp = (const char **)mount_files(&ctx->err, ctx->cfg.root, cnt, cnt->cfg.bins_dir, info->bins, info->nbins)) == NULL)
                         goto fail;
@@ -668,7 +407,6 @@ nvc_driver_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const
                 ptr = array_append(ptr, tmp, array_size(tmp));
                 free(tmp);
         }
-#if 1
         if ((cnt->flags & OPT_COMPAT32) && info->libs32 != NULL && info->nlibs32 > 0) {
                 if ((tmp = (const char **)mount_files(&ctx->err, ctx->cfg.root, cnt, cnt->cfg.libs32_dir, info->libs32, info->nlibs32)) == NULL)
                         goto fail;
@@ -694,29 +432,6 @@ nvc_driver_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const
                 free(tmp);
                 free(libs);
         }
-#endif
-
-#if 0
-        /* Firmware mounts */
-        for (size_t i = 0; i < info->nfirmwares; ++i) {
-                if ((*ptr++ = mount_firmware(&ctx->err, ctx->cfg.root, cnt, info->firmwares[i])) == NULL) {
-                        log_errf("error mounting firmware path %s", info->firmwares[i]);
-                        goto fail;
-                }
-        }
-
-        /* IPC mounts */
-        for (size_t i = 0; i < info->nipcs; ++i) {
-                /* XXX Only utility libraries require persistenced or fabricmanager IPC, everything else is compute only. */
-                if (str_has_suffix(NV_PERSISTENCED_SOCKET, info->ipcs[i]) || str_has_suffix(NV_FABRICMANAGER_SOCKET, info->ipcs[i])) {
-                        if (!(cnt->flags & OPT_UTILITY_LIBS))
-                                continue;
-                } else if (!(cnt->flags & OPT_COMPUTE_LIBS))
-                        continue;
-                if ((*ptr++ = mount_ipc(&ctx->err, ctx->cfg.root, cnt, info->ipcs[i])) == NULL)
-                        goto fail;
-        }
-#endif
 
         /* Device mounts */
         for (size_t i = 0; i < info->ndevs; ++i) {
@@ -769,10 +484,6 @@ nvc_device_mount(struct nvc_context *ctx, const struct nvc_container *cnt, const
         if (ctx->dxcore.initialized)
                 rv = device_mount_dxcore(ctx, cnt);
         else rv = device_mount_native(ctx, cnt, dev);
-
-        int n = 0;
-        driver_get_device_count(&ctx->err, &n);
-        log_errf("n: %d, %s", n, ctx->err.msg);
 
         if (rv < 0)
                 assert_func(ns_enter_at(NULL, ctx->mnt_ns, CLONE_NEWNS));

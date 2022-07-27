@@ -254,8 +254,8 @@ driver_get_cuda_version(struct error *err, char **version)
 bool_t
 driver_get_cuda_version_1_svc(ptr_t ctxptr, driver_get_cuda_version_res *res, maybe_unused struct svc_req *req)
 {
-        struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
+//        struct error *err = (struct error[]){0};
+//       struct driver *ctx = (struct driver *)ctxptr;
         int version = 1010;
 
         memset(res, 0, sizeof(*res));
@@ -268,9 +268,11 @@ driver_get_cuda_version_1_svc(ptr_t ctxptr, driver_get_cuda_version_res *res, ma
         res->driver_get_cuda_version_res_u.vers.minor = (unsigned int)version % 100 / 10;
         return (true);
 
+#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
+#endif
 }
 
 int
@@ -368,9 +370,9 @@ driver_get_device_minor(struct error *err, struct driver_device *dev, unsigned i
 bool_t
 driver_get_device_minor_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_minor_res *res, maybe_unused struct svc_req *req)
 {
-        struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
-        struct driver_device *handle = (struct driver_device *)dev;
+//        struct error *err = (struct error[]){0};
+//      struct driver *ctx = (struct driver *)ctxptr;
+//        struct driver_device *handle = (struct driver_device *)dev;
         unsigned int minor = 0;
 
         memset(res, 0, sizeof(*res));
@@ -381,9 +383,11 @@ driver_get_device_minor_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_minor_r
         res->driver_get_device_minor_res_u.minor = minor;
         return (true);
 
+#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
+#endif
 }
 
 int
@@ -447,8 +451,8 @@ bool_t
 driver_get_device_uuid_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_uuid_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
-        struct driver_device *handle = (struct driver_device *)dev;
+//        struct driver *ctx = (struct driver *)ctxptr;
+//        struct driver_device *handle = (struct driver_device *)dev;
         char buf[XPUML_DEVICE_UUID_BUFFER_SIZE];
 
         strcpy(buf, "kunlun2 uuid");
@@ -462,7 +466,7 @@ driver_get_device_uuid_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_uuid_res
                 goto fail;
         return (true);
 
- fail:
+fail:
         error_to_xdr(err, res);
         return (true);
 }
@@ -489,8 +493,8 @@ bool_t
 driver_get_device_model_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_model_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
-        struct driver_device *handle = (struct driver_device *)dev;
+//        struct driver *ctx = (struct driver *)ctxptr;
+//        struct driver_device *handle = (struct driver_device *)dev;
         char buf[XPUML_DEVICE_NAME_BUFFER_SIZE];
 
         strcpy(buf, "kunlun2");
@@ -531,7 +535,7 @@ bool_t
 driver_get_device_brand_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_brand_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
+//        struct driver *ctx = (struct driver *)ctxptr;
         struct driver_device *handle = (struct driver_device *)dev;
 //        xpumlBrandType_t brand;
         const char *buf;
@@ -583,9 +587,9 @@ driver_get_device_arch(struct error *err, struct driver_device *dev, char **arch
 bool_t
 driver_get_device_arch_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_arch_res *res, maybe_unused struct svc_req *req)
 {
-        struct error *err = (struct error[]){0};
-        struct driver *ctx = (struct driver *)ctxptr;
-        struct driver_device *handle = (struct driver_device *)dev;
+//        struct error *err = (struct error[]){0};
+//        struct driver *ctx = (struct driver *)ctxptr;
+//        struct driver_device *handle = (struct driver_device *)dev;
         int major = 1, minor = 1;
 
         memset(res, 0, sizeof(*res));
@@ -598,30 +602,32 @@ driver_get_device_arch_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_arch_res
         res->driver_get_device_arch_res_u.arch.minor = (unsigned int)minor;
         return (true);
 
+#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
+#endif
 }
 
 int
-driver_set_device_memory_limit(struct error *err, struct driver_device *dev, char *user_id, unsigned int type, unsigned long long bytes)
+driver_set_cxpu_instance_memory_limit(struct error *err, struct driver_device *dev, char *instance_id, unsigned int type, unsigned long long bytes)
 {
         struct driver *ctx = driver_get_context();
-        struct driver_set_device_memory_limit_res res = {0};
+        struct driver_set_cxpu_instance_memory_limit_res res = {0};
         int rv = -1;
 
-        if (call_rpc(err, &ctx->rpc, &res, driver_set_device_memory_limit_1, (ptr_t)dev, (ptr_t)user_id, type, bytes) < 0)
+        if (call_rpc(err, &ctx->rpc, &res, driver_set_cxpu_instance_memory_limit_1, (ptr_t)dev, (ptr_t)instance_id, type, bytes) < 0)
                 goto fail;
         rv = 0;
 
  fail:
-        xdr_free((xdrproc_t)xdr_driver_set_device_memory_limit_res, (caddr_t)&res);
+        xdr_free((xdrproc_t)xdr_driver_set_cxpu_instance_memory_limit_res, (caddr_t)&res);
         return (rv);
 }
 
 bool_t
-driver_set_device_memory_limit_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id, unsigned int type, uint64_t limit_inbytes,
-        driver_set_device_memory_limit_res *res,
+driver_set_cxpu_instance_memory_limit_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t instance_id, unsigned int type, uint64_t limit_inbytes,
+        driver_set_cxpu_instance_memory_limit_res *res,
         maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
@@ -629,7 +635,8 @@ driver_set_device_memory_limit_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id, uns
         struct driver_device *handle = (struct driver_device *)dev;
 
         memset(res, 0, sizeof(*res));
-        call_xpuml(err, ctx, xpumlDeviceSetCxpuInstanceMemoryLimit, handle->xpuml, (char *)user_id, type, limit_inbytes);
+        if (call_xpuml(err, ctx, xpumlDeviceSetCxpuInstanceMemoryLimit, handle->xpuml, (char *)instance_id, type, limit_inbytes) > 0)
+            goto fail;
 
         return (true);
 
@@ -639,31 +646,32 @@ driver_set_device_memory_limit_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id, uns
 }
 
 int
-driver_create_device_cxpu(struct error *err, struct driver_device *dev, char *user_id)
+driver_create_cxpu_instance(struct error *err, struct driver_device *dev, char *instance_id)
 {
         struct driver *ctx = driver_get_context();
-        struct driver_create_device_cxpu_res res= {0};
+        struct driver_create_cxpu_instance_res res= {0};
         int rv = -1;
 
-        if (call_rpc(err, &ctx->rpc, &res, driver_create_device_cxpu_1, (ptr_t)dev, (ptr_t)user_id) < 0)
+        if (call_rpc(err, &ctx->rpc, &res, driver_create_cxpu_instance_1, (ptr_t)dev, (ptr_t)instance_id) < 0)
                 goto fail;
         rv = 0;
 
  fail:
-        xdr_free((xdrproc_t)xdr_driver_create_device_cxpu_res, (caddr_t)&res);
+        xdr_free((xdrproc_t)xdr_driver_create_cxpu_instance_res, (caddr_t)&res);
         return (rv);
 }
 
 bool_t
-driver_create_device_cxpu_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id,
-        driver_create_device_cxpu_res *res, maybe_unused struct svc_req *req)
+driver_create_cxpu_instance_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t instance_id,
+        driver_create_cxpu_instance_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
         struct driver *ctx = (struct driver *)ctxptr;
         struct driver_device *handle = (struct driver_device *)dev;
 
         memset(res, 0, sizeof(*res));
-        call_xpuml(err, ctx, xpumlDeviceCreateCxpuInstance, handle->xpuml, (char *)user_id);
+        if (call_xpuml(err, ctx, xpumlDeviceCreateCxpuInstance, handle->xpuml, (char *)instance_id) < 0)
+            goto fail;
 
         return (true);
  fail:
@@ -672,32 +680,33 @@ driver_create_device_cxpu_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id,
 }
 
 int
-driver_destroy_device_cxpu(struct error *err, struct driver_device *dev, char *user_id)
+driver_destroy_cxpu_instance(struct error *err, struct driver_device *dev, char *instance_id)
 {
         struct driver *ctx = driver_get_context();
-        struct driver_destroy_device_cxpu_res res= {0};
+        struct driver_destroy_cxpu_instance_res res= {0};
         int rv = -1;
 
-        if (call_rpc(err, &ctx->rpc, &res, driver_destroy_device_cxpu_1, (ptr_t)dev, (ptr_t)user_id) < 0)
+        if (call_rpc(err, &ctx->rpc, &res, driver_destroy_cxpu_instance_1, (ptr_t)dev, (ptr_t)instance_id) < 0)
                 goto fail;
 
         rv = 0;
 
  fail:
-        xdr_free((xdrproc_t)xdr_driver_destroy_device_cxpu_res, (caddr_t)&res);
+        xdr_free((xdrproc_t)xdr_driver_destroy_cxpu_instance_res, (caddr_t)&res);
         return (rv);
 }
 
 bool_t
-driver_destroy_device_cxpu_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t user_id,
-        driver_destroy_device_cxpu_res *res, maybe_unused struct svc_req *req)
+driver_destroy_cxpu_instance_1_svc(ptr_t ctxptr, ptr_t dev, ptr_t instance_id,
+        driver_destroy_cxpu_instance_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
         struct driver *ctx = (struct driver *)ctxptr;
         struct driver_device *handle = (struct driver_device *)dev;
 
         memset(res, 0, sizeof(*res));
-        call_xpuml(err, ctx, xpumlDeviceDestroyCxpuInstance, handle->xpuml, (char *)user_id);
+        if (call_xpuml(err, ctx, xpumlDeviceDestroyCxpuInstance, handle->xpuml, (char *)instance_id))
+            goto fail;
 
         return (true);
 

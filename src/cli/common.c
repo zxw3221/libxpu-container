@@ -487,29 +487,5 @@ print_nvcaps_device_from_proc_file(struct nvc_context *ctx, const char* cap_dir,
 int
 print_all_mig_minor_devices(const struct nvc_device_node *node)
 {
-        unsigned int gpu_minor = 0;
-        unsigned int mig_minor = 0;
-        char line[PATH_MAX];
-        char dummy[PATH_MAX];
-        FILE *fp;
-        int rv = -1;
-
-        if ((fp = fopen(NV_CAPS_MIG_MINORS_PATH, "r")) == NULL) {
-            goto fail;
-        }
-
-        line[PATH_MAX - 1] = '\0';
-        while (fgets(line, PATH_MAX - 1, fp)) {
-                if (sscanf(line, "gpu%u%s %u", &gpu_minor, dummy, &mig_minor) != 3)
-                        continue;
-                if (gpu_minor != minor(node->id))
-                        continue;
-                printf(NV_CAPS_DEVICE_PATH "\n", mig_minor);
-        }
-
-        rv = 0;
-
-fail:
-        fclose(fp);
-        return (rv);
+        return 0;
 }

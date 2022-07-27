@@ -156,7 +156,6 @@ load_libnvc_v1(void)
         load_libnvc_func(shutdown);
         load_libnvc_func(version);
         load_libnvc_func(nvcaps_style);
-        load_libnvc_func(nvcaps_device_from_proc_path);
 
         return (0);
 }

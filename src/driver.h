@@ -32,5 +32,8 @@ int driver_get_device_max_mig_device_count(struct error*, struct driver_device *
 int driver_get_device_mig_device(struct error*, struct driver_device *, unsigned int, struct driver_device **);
 int driver_get_device_gpu_instance_id(struct error*, struct driver_device *, unsigned int *);
 int driver_get_device_compute_instance_id(struct error*, struct driver_device *, unsigned int *);
+int driver_create_cxpu_instance(struct error *err, struct driver_device *dev, char *instance_id);
+int driver_destroy_cxpu_instance(struct error *err, struct driver_device *dev, char *instance_id);
+int driver_set_cxpu_instance_memory_limit(struct error *err, struct driver_device *dev, char *instance_id, unsigned int type, unsigned long long bytes);
 
 #endif /* HEADER_DRIVER_H */

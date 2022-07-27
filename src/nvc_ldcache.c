@@ -381,9 +381,6 @@ nvc_ldcache_update(struct nvc_context *ctx, const struct nvc_container *cnt)
         if (child == 0) {
                 prctl(PR_SET_NAME, (unsigned long)"nvc:[ldconfig]", 0, 0, 0);
 
-                int n = 0;
-                driver_get_device_count(&ctx->err, &n);
-
                 if (ns_enter(&ctx->err, cnt->mnt_ns, CLONE_NEWNS) < 0)
                         goto fail;
                 if (adjust_capabilities(&ctx->err, cnt->uid, host_ldconfig) < 0)

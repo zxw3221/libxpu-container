@@ -143,21 +143,21 @@ union driver_get_device_compute_instance_id_res switch (int errcode) {
                 string errmsg<>;
 };
 
-union driver_set_device_memory_limit_res switch (int errcode) {
+union driver_set_cxpu_instance_memory_limit_res switch (int errcode) {
         case 0:
                 void;
         default:
                 string errmsg<>;
 };
 
-union driver_create_device_cxpu_res switch (int errcode) {
+union driver_create_cxpu_instance_res switch (int errcode) {
         case 0:
                 void;
         default:
                 string errmsg<>;
 };
 
-union driver_destroy_device_cxpu_res switch (int errcode) {
+union driver_destroy_cxpu_instance_res switch (int errcode) {
         case 0:
                 void;
         default:
@@ -179,9 +179,9 @@ program DRIVER_PROGRAM {
                 driver_get_device_arch_res DRIVER_GET_DEVICE_ARCH(ptr_t, ptr_t) = 10;
                 driver_get_device_model_res DRIVER_GET_DEVICE_MODEL(ptr_t, ptr_t) = 11;
                 driver_get_device_brand_res DRIVER_GET_DEVICE_BRAND(ptr_t, ptr_t) = 12;
-                driver_set_device_memory_limit_res DRIVER_SET_DEVICE_MEMORY_LIMIT(ptr_t, ptr_t, ptr_t, unsigned int, uint64_t) = 17;
-                driver_create_device_cxpu_res DRIVER_CREATE_DEVICE_CXPU(ptr_t, ptr_t, ptr_t) = 18;
-                driver_destroy_device_cxpu_res DRIVER_DESTROY_DEVICE_CXPU(ptr_t, ptr_t, ptr_t) = 19;
+                driver_set_cxpu_instance_memory_limit_res DRIVER_SET_CXPU_INSTANCE_MEMORY_LIMIT(ptr_t, ptr_t, ptr_t, unsigned int, uint64_t) = 17;
+                driver_create_cxpu_instance_res DRIVER_CREATE_CXPU_INSTANCE(ptr_t, ptr_t, ptr_t) = 18;
+                driver_destroy_cxpu_instance_res DRIVER_DESTROY_CXPU_INSTANCE(ptr_t, ptr_t, ptr_t) = 19;
         } = 1;
 } = 1;
 

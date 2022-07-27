@@ -16,10 +16,12 @@ static error_t cxpu_parser(int, char *, struct argp_state *);
 const struct argp cxpu_usage = {
         (const struct argp_option[]){
                 {NULL, 0, NULL, 0, "Options:", -1},
-                {"userid", 'u', "userid", 0, "user id", -1},
-                {"pid", 'p', "PID", 0, "Container PID", -1},
-                {"device", 'd', "DEVICE ID", 0, "Device UUID(s) or index(es) to isolate", -1},
-                {"command", 'c', "cxpu command", 0, "cxpu control command", -1},
+                {"instance", 'i', "instance_id", 0, "cxpu instance id", -1},
+                {"device", 'D', "phy_device_id", 0, "physical device id", -1},
+                {"create", 'c', NULL, 0, "cxpu create instance", -1},
+                {"destroy", 'd', NULL, 0, "cxpu destroy instance", -1},
+                {"mmem", 'm', "memory_inbytes", 0, "cxpu set instance main memory limitation", -1},
+                {"hmem", 'h', "memory_inbytes", 0, "cxpu set instance high speed memory limitation", -1},
                 {0},
         },
         cxpu_parser,
@@ -37,29 +39,21 @@ cxpu_parser(int key, maybe_unused char *arg, struct argp_state *state)
         struct error err = {0};
 
         switch (key) {
-        case 'p':
-                if (str_to_pid(&err, arg, &ctx->pid) < 0)
-                        goto fatal;
-                break;
-        case 'd':
+        case 'D':
                 if (str_join(&err, &ctx->devices, arg, ",") < 0)
                         goto fatal;
                 break;
-        case 'u':
+        case 'i':
                 strncpy(ctx->cxpu_user_id, arg, CXPU_MAX_USER_ID_LEN);
                 break;
         case 'c':
-                if (strncmp("create", arg, 6) == 0) {
-                    ctx->cxpu_enable = true;
-                    uint64_t mem_limit = XPUML_MEM_UNLIMIT;
-                    const char *mem_limit_str = getenv("BAIDU_COM_XPU_MEM_LIMIT_INBYTES");
-                    if (mem_limit_str) {
-                        mem_limit = atoll(mem_limit_str);
-                    }
-                    ctx->cxpu_mem_limit_inbytes = mem_limit;
-                } else {
-                    ctx->cxpu_enable = false;
-                }
+                ctx->cxpu_enable = true;
+                break;
+        case 'd':
+                ctx->cxpu_enable = false;
+                break;
+        case 'm':
+                ctx->cxpu_mem_limit_inbytes = atoll(arg);
                 break;
         case ARGP_KEY_ARG:
                 break;
@@ -107,8 +101,17 @@ cxpu_command(const struct context *ctx)
         nvc_cfg->root = ctx->root;
         nvc_cfg->ldcache = ctx->ldcache;
         nvc_cfg->cxpu_enable = ctx->cxpu_enable;
+        if (!ctx->cxpu_mem_limit_inbytes) {
+            uint64_t mem_limit = XPUML_MEM_UNLIMIT;
+            const char *mem_limit_str = getenv("BAIDU_COM_XPU_MEM_LIMIT_INBYTES");
+            if (mem_limit_str) {
+                mem_limit = (uint64_t)atoll(mem_limit_str);
+            }
+            nvc_cfg->cxpu_mem_limit_inbytes = mem_limit;
+        } else {
+            nvc_cfg->cxpu_mem_limit_inbytes = ctx->cxpu_mem_limit_inbytes;
+        }
         strncpy(nvc_cfg->cxpu_user_id, ctx->cxpu_user_id, CXPU_MAX_USER_ID_LEN);
-        nvc_cfg->cxpu_mem_limit_inbytes = ctx->cxpu_mem_limit_inbytes;
         if (libnvc.init(nvc, nvc_cfg, ctx->init_flags) < 0) {
                 warnx("initialization error: %s", libnvc.error(nvc));
                 goto fail;

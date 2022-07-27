@@ -145,7 +145,7 @@ CFLAGS   := -std=gnu11 -O2 -g -fdata-sections -ffunction-sections -fplan9-extens
             -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull \
             -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow \
             -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion \
-            -Wno-unknown-warning-option -Wno-format-extra-args -Wno-gnu-alignof-expression $(CFLAGS)
+            -Wno-format-extra-args $(CFLAGS)
 LDFLAGS  := -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--gc-sections $(LDFLAGS)
 LDLIBS   := $(LDLIBS)
 
@@ -153,7 +153,6 @@ LDLIBS   := $(LDLIBS)
 LIB_CPPFLAGS       = -DNV_LINUX -isystem $(DEPS_DIR)$(includedir) -include $(BUILD_DEFS)
 LIB_CFLAGS         = -fPIC
 LIB_LDFLAGS        = -L$(DEPS_DIR)$(libdir) -shared -Wl,-soname=$(LIB_SONAME)
-LIB_LDLIBS_STATIC  = -l:libnvidia-modprobe-utils.a
 LIB_LDLIBS_SHARED  = -ldl -lcap
 ifeq ($(WITH_NVCGO), yes)
 LIB_CPPFLAGS       += -DWITH_NVCGO
@@ -259,7 +258,6 @@ static: $(LIB_STATIC)($(LIB_STATIC_OBJ))
 
 deps: $(LIB_RPC_SRCS) $(BUILD_DEFS)
 	$(MKDIR) -p $(DEPS_DIR)
-	$(MAKE) -f $(MAKE_DIR)/nvidia-modprobe.mk DESTDIR=$(DEPS_DIR) install
 ifeq ($(WITH_NVCGO), yes)
 	$(MAKE) -f $(MAKE_DIR)/nvcgo.mk DESTDIR=$(DEPS_DIR) MAJOR=$(MAJOR) VERSION=$(VERSION) LIB_NAME=$(LIBGO_NAME) install
 endif
@@ -317,7 +315,6 @@ dist: install
 
 depsclean:
 	$(RM) $(BUILD_DEFS)
-	-$(MAKE) -f $(MAKE_DIR)/nvidia-modprobe.mk clean
 ifeq ($(WITH_NVCGO), yes)
 	-$(MAKE) -f $(MAKE_DIR)/nvcgo.mk clean
 endif
