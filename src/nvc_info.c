@@ -36,12 +36,12 @@ static int select_libraries(struct error *, void *, const char *, const char *, 
 static int select_wsl_libraries(struct error *, void *, const char *, const char *, const char *);
 static int find_library_paths(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, const char *, const char * const [], size_t);
 static int find_binary_paths(struct error *, struct dxcore_context*, struct nvc_driver_info *, const char *, const char * const [], size_t);
-static int find_device_node(struct error *, const char *, const char *, struct nvc_device_node *);
-static int find_path(struct error *, const char *, const char *, const char *, char **);
+//static int find_device_node(struct error *, const char *, const char *, struct nvc_device_node *);
+//static int find_path(struct error *, const char *, const char *, const char *, char **);
 static int lookup_paths(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t, const char *);
 static int lookup_libraries(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t, const char *);
 static int lookup_binaries(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t);
-static int lookup_devices(struct error *, struct dxcore_context *, struct nvc_driver_info *, const char *, int32_t);
+static int lookup_devices(struct error *, struct dxcore_context *, struct nvc_driver_info *);
 
 /*
  * Display libraries are not needed.
@@ -243,6 +243,7 @@ find_binary_paths(struct error *err, struct dxcore_context* dxcore, struct nvc_d
         return (rv);
 }
 
+#if 0
 static int
 find_device_node(struct error *err, const char *root, const char *dev, struct nvc_device_node *node)
 {
@@ -286,6 +287,7 @@ find_path(struct error *err, const char *tag, const char *root, const char *targ
         }
         return (0);
 }
+#endif
 
 static int
 lookup_paths(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info, const char *root, int32_t flags, const char *ldcache)
@@ -360,7 +362,7 @@ lookup_binaries(struct error *err, struct dxcore_context* dxcore, struct nvc_dri
 }
 
 static int
-lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info, const char *root, int32_t flags)
+lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driver_info *info)
 {
         struct nvc_device_node uvm, uvm_tools, modeset, nvidiactl, dxg, *node;
         int has_dxg = 0;
@@ -400,25 +402,23 @@ lookup_devices(struct error *err, struct dxcore_context *dxcore, struct nvc_driv
         return (0);
 }
 
-static int
-config_cxpus(struct nvc_context *ctx, unsigned int cxpu_count)
+int nvc_cxpu_config(struct nvc_context *ctx, unsigned int device_index)
 {
     struct driver_device *dev;
     struct error *err = &ctx->err;
-    unsigned int i;
 
-    for (i = 0; i < cxpu_count; i++) {
-        if (driver_get_device(err, i, &dev) < 0)
-            goto fail;
+    if (driver_get_device(err, device_index, &dev) < 0)
+        goto fail;
 
-        if (ctx->cfg.cxpu_enable) {
-            driver_create_cxpu_instance(err, dev, ctx->cfg.cxpu_user_id);
-            driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_user_id, 0,
-                    ctx->cfg.cxpu_mem_limit_inbytes / cxpu_count);
-        } else {
-            driver_destroy_cxpu_instance(err, dev, ctx->cfg.cxpu_user_id);
-        }
+    if (ctx->cfg.cxpu_enable) {
+        driver_create_cxpu_instance(err, dev, ctx->cfg.cxpu_instance_id);
+        driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_instance_id, 0,
+                ctx->cfg.cxpu_container_mem_limit / ctx->cfg.cxpu_container_mem_count);
+    } else {
+        driver_destroy_cxpu_instance(err, dev, ctx->cfg.cxpu_instance_id);
     }
+
+    return (0);
 
     fail:
         return (-1);
@@ -471,9 +471,12 @@ init_nvc_device(struct nvc_context *ctx, unsigned int index, struct nvc_device *
                 if (xasprintf(err, &gpu->mig_caps_path, NV_GPU_CAPS_PATH, minor) < 0)
                         goto fail;
 #endif
-                if (xasprintf(err, &gpu->node.path, NV_DEVICE_PATH, index) < 0)
+                unsigned int id;
+                if (driver_get_device_id(err, dev, &id) < 0)
                         goto fail;
-                 struct stat dev_stat;
+                if (xasprintf(err, &gpu->node.path, NV_DEVICE_PATH, id) < 0)
+                        goto fail;
+                struct stat dev_stat;
                 stat(gpu->node.path, &dev_stat);
                 gpu->node.id = dev_stat.st_rdev;
                 log_infof("listing device %s (%s at %s)", gpu->node.path, gpu->uuid, gpu->busid);
@@ -539,7 +542,7 @@ nvc_driver_info_new(struct nvc_context *ctx, const char *opts)
                 goto fail;
         if (lookup_paths(&ctx->err, &ctx->dxcore, info, ctx->cfg.root, flags, ctx->cfg.ldcache) < 0)
                 goto fail;
-        if (lookup_devices(&ctx->err, &ctx->dxcore, info, ctx->cfg.root, flags) < 0)
+        if (lookup_devices(&ctx->err, &ctx->dxcore, info) < 0)
                 goto fail;
         return (info);
 
@@ -593,8 +596,6 @@ nvc_device_info_new(struct nvc_context *ctx, const char *opts)
         info->gpus = gpu = xcalloc(&ctx->err, info->ngpus, sizeof(*info->gpus));
         if (info->gpus == NULL)
                 goto fail;
-
-        config_cxpus(ctx, n);
 
         for (unsigned int i = 0; i < n; ++i, ++gpu) {
                 rv = init_nvc_device(ctx, i, gpu);

@@ -483,9 +483,3 @@ print_nvcaps_device_from_proc_file(struct nvc_context *ctx, const char* cap_dir,
 
         return (0);
 }
-
-int
-print_all_mig_minor_devices(const struct nvc_device_node *node)
-{
-        return 0;
-}

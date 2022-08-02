@@ -94,18 +94,18 @@ info_command(const struct context *ctx)
         }
 
         if (ctx->csv_output) {
-                printf("NVRM version,CUDA version\n%s,%s\n", drv->nvrm_version, drv->cuda_version);
-                printf("\nDevice Index,Device Minor,Model,Brand,GPU UUID,Bus Location,Architecture\n");
+                printf("Driver version,XPUML version\n%s,%s\n", drv->nvrm_version, drv->cuda_version);
+                printf("\nDevice Index,Device Minor,Model,Brand,Serial Number,Bus Location,Architecture\n");
                 for (size_t i = 0; i < dev->ngpus; ++i)
                         printf("%zu,%u,%s,%s,%s,%s,%s\n", i, minor(dev->gpus[i].node.id), dev->gpus[i].model, dev->gpus[i].brand,
                             dev->gpus[i].uuid, dev->gpus[i].busid, dev->gpus[i].arch);
 
         } else {
-                printf("%-15s %s\n%-15s %s\n", "NVRM version:", drv->nvrm_version, "CUDA version:", drv->cuda_version);
+                printf("%-15s %s\n%-15s %s\n", "Driver version:", drv->nvrm_version, "XPUML version:", drv->cuda_version);
                 for (size_t i = 0; i < dev->ngpus; ++i)
                         printf("\n%-15s %zu\n%-15s %u\n%-15s %s\n%-15s %s\n%-15s %s\n%-15s %s\n%-15s %s\n",
                             "Device Index:", i, "Device Minor:", minor(dev->gpus[i].node.id), "Model:", dev->gpus[i].model, "Brand:",
-                            dev->gpus[i].brand, "GPU UUID:", dev->gpus[i].uuid, "Bus Location:", dev->gpus[i].busid, "Architecture:", dev->gpus[i].arch);
+                            dev->gpus[i].brand, "Serial Number:", dev->gpus[i].uuid, "Bus Location:", dev->gpus[i].busid, "Architecture:", dev->gpus[i].arch);
         }
 
         if (run_as_root && perm_set_capabilities(&err, CAP_EFFECTIVE, ecaps[NVC_SHUTDOWN], ecaps_size(NVC_SHUTDOWN)) < 0) {

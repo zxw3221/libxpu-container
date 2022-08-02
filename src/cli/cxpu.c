@@ -44,7 +44,7 @@ cxpu_parser(int key, maybe_unused char *arg, struct argp_state *state)
                         goto fatal;
                 break;
         case 'i':
-                strncpy(ctx->cxpu_user_id, arg, CXPU_MAX_USER_ID_LEN);
+                strncpy(ctx->cxpu_instance_id, arg, CXPU_MAX_INSTANCE_ID_LEN);
                 break;
         case 'c':
                 ctx->cxpu_enable = true;
@@ -53,7 +53,7 @@ cxpu_parser(int key, maybe_unused char *arg, struct argp_state *state)
                 ctx->cxpu_enable = false;
                 break;
         case 'm':
-                ctx->cxpu_mem_limit_inbytes = atoll(arg);
+                ctx->cxpu_container_mem_limit = (uint64_t)atoll(arg);
                 break;
         case ARGP_KEY_ARG:
                 break;
@@ -101,17 +101,17 @@ cxpu_command(const struct context *ctx)
         nvc_cfg->root = ctx->root;
         nvc_cfg->ldcache = ctx->ldcache;
         nvc_cfg->cxpu_enable = ctx->cxpu_enable;
-        if (!ctx->cxpu_mem_limit_inbytes) {
-            uint64_t mem_limit = XPUML_MEM_UNLIMIT;
-            const char *mem_limit_str = getenv("BAIDU_COM_XPU_MEM_LIMIT_INBYTES");
+        if (!ctx->cxpu_container_mem_limit) {
+            uint64_t mem_limit = XPUML_CXPU_MEM_UNLIMIT;
+            const char *mem_limit_str = getenv("CXPU_CONTAINER_MEMORY_LIMIT");
             if (mem_limit_str) {
                 mem_limit = (uint64_t)atoll(mem_limit_str);
             }
-            nvc_cfg->cxpu_mem_limit_inbytes = mem_limit;
+            nvc_cfg->cxpu_container_mem_limit = mem_limit;
         } else {
-            nvc_cfg->cxpu_mem_limit_inbytes = ctx->cxpu_mem_limit_inbytes;
+            nvc_cfg->cxpu_container_mem_limit = ctx->cxpu_container_mem_limit;
         }
-        strncpy(nvc_cfg->cxpu_user_id, ctx->cxpu_user_id, CXPU_MAX_USER_ID_LEN);
+        strncpy(nvc_cfg->cxpu_instance_id, ctx->cxpu_instance_id, CXPU_MAX_INSTANCE_ID_LEN);
         if (libnvc.init(nvc, nvc_cfg, ctx->init_flags) < 0) {
                 warnx("initialization error: %s", libnvc.error(nvc));
                 goto fail;
@@ -126,6 +126,46 @@ cxpu_command(const struct context *ctx)
             (dev = libnvc.device_info_new(nvc, NULL)) == NULL) {
                 warnx("detection error: %s", libnvc.error(nvc));
                 goto fail;
+        }
+
+        struct devices devices = {0};
+        /* Allocate space for selecting GPU devices and MIG devices */
+        if (new_devices(&err, dev, &devices) < 0) {
+            warn("memory allocation failed: %s", err.msg);
+            goto fail;
+        }
+
+        /* Select the visible GPU devices. */
+        if (dev->ngpus > 0) {
+            if (select_devices(&err, ctx->devices, dev, &devices) < 0) {
+                    warnx("device error: %s", err.msg);
+                    goto fail;
+            }
+        }
+
+
+        if (devices.ngpus > 0) {
+            nvc->cfg.cxpu_container_mem_count = (uint32_t)devices.ngpus;
+        } else {
+            nvc->cfg.cxpu_container_mem_count = 1;
+        }
+
+        if (!strcmp(ctx->devices, "all")) {
+            for (size_t i = 0; i < devices.ngpus; ++i) {
+                if (libnvc.cxpu_config(nvc, (unsigned int)i) < 0) {
+                    goto fail;
+                }
+            }
+        } else if (ctx->devices != NULL) {
+            for (size_t i = 0; i < devices.ngpus; ++i) {
+               if (devices.gpus[i]->node.path != NULL) {
+                   unsigned int dev_idx;
+                   sscanf(devices.gpus[i]->node.path, "/dev/xpu%u", &dev_idx);
+                   if (libnvc.cxpu_config(nvc, dev_idx) < 0) {
+                       goto fail;
+                   }
+               }
+            }
         }
 
         if (run_as_root && perm_set_capabilities(&err, CAP_EFFECTIVE, ecaps[NVC_SHUTDOWN], ecaps_size(NVC_SHUTDOWN)) < 0) {

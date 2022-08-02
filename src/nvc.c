@@ -135,8 +135,8 @@ copy_config(struct error *err, struct nvc_context *ctx, const struct nvc_config 
         }
 
         ctx->cfg.cxpu_enable = cfg->cxpu_enable;
-        ctx->cfg.cxpu_mem_limit_inbytes = cfg->cxpu_mem_limit_inbytes;
-        strncpy(ctx->cfg.cxpu_user_id, cfg->cxpu_user_id, CXPU_MAX_USER_ID_LEN);
+        ctx->cfg.cxpu_container_mem_limit = cfg->cxpu_container_mem_limit;
+        strncpy(ctx->cfg.cxpu_instance_id, cfg->cxpu_instance_id, CXPU_MAX_INSTANCE_ID_LEN);
 
         log_infof("using root %s", ctx->cfg.root);
         log_infof("using ldcache %s", ctx->cfg.ldcache);
@@ -155,7 +155,7 @@ nvc_init(struct nvc_context *ctx, const struct nvc_config *cfg, const char *opts
         if (ctx->initialized)
                 return (0);
         if (cfg == NULL)
-                cfg = &(struct nvc_config){NULL, NULL, (uid_t)-1, (gid_t)-1, false, {0}, ~0ull};
+                cfg = &(struct nvc_config){NULL, NULL, (uid_t)-1, (gid_t)-1, false, {0}, ~0ull, 1};
         if (validate_args(ctx, !str_empty(cfg->ldcache) && !str_empty(cfg->root)) < 0)
                 return (-1);
         if (opts == NULL)

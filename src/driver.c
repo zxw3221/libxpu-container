@@ -241,8 +241,7 @@ driver_get_cuda_version(struct error *err, char **version)
 
         if (call_rpc(err, &ctx->rpc, &res, driver_get_cuda_version_1) < 0)
                 goto fail;
-        if (xasprintf(err, version, "%u.%u", res.driver_get_cuda_version_res_u.vers.major,
-            res.driver_get_cuda_version_res_u.vers.minor) < 0)
+        if ((*version = xstrdup(err, res.driver_get_cuda_version_res_u.vers)) == NULL)
                 goto fail;
         rv = 0;
 
@@ -254,25 +253,21 @@ driver_get_cuda_version(struct error *err, char **version)
 bool_t
 driver_get_cuda_version_1_svc(ptr_t ctxptr, driver_get_cuda_version_res *res, maybe_unused struct svc_req *req)
 {
-//        struct error *err = (struct error[]){0};
-//       struct driver *ctx = (struct driver *)ctxptr;
-        int version = 1010;
+        struct error *err = (struct error[]){0};
+        struct driver *ctx = (struct driver *)ctxptr;
+        char version[XPUML_SYSTEM_XPUML_VERSION_BUFFER_SIZE];
 
         memset(res, 0, sizeof(*res));
-#if 0
-        if (call_xpuml(err, ctx, xpumlSystemGetCudaDriverVersion, &version) < 0)
+        if (call_xpuml(err, ctx, xpumlSystemGetXPUMLVersion, version, XPUML_SYSTEM_XPUML_VERSION_BUFFER_SIZE) < 0)
                 goto fail;
-#endif
+        if ((res->driver_get_cuda_version_res_u.vers = xstrdup(err, version)) == NULL)
+                goto fail;
 
-        res->driver_get_cuda_version_res_u.vers.major = (unsigned int)version / 1000;
-        res->driver_get_cuda_version_res_u.vers.minor = (unsigned int)version % 100 / 10;
         return (true);
 
-#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
-#endif
 }
 
 int
@@ -351,6 +346,42 @@ driver_get_device_1_svc(ptr_t ctxptr, u_int idx, driver_get_device_res *res, may
 }
 
 int
+driver_get_device_id(struct error *err, struct driver_device *dev, unsigned int *id)
+{
+        struct driver *ctx = driver_get_context();
+        struct driver_get_device_id_res res = {0};
+        int rv = -1;
+
+        if (call_rpc(err, &ctx->rpc, &res, driver_get_device_id_1, (ptr_t)dev) < 0)
+                goto fail;
+        *id = res.driver_get_device_id_res_u.id;
+        rv = 0;
+
+ fail:
+        xdr_free((xdrproc_t)xdr_driver_get_device_id_res, (caddr_t)&res);
+        return (rv);
+}
+
+bool_t
+driver_get_device_id_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_id_res *res, maybe_unused struct svc_req *req)
+{
+        struct error *err = (struct error[]){0};
+        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver_device *handle = (struct driver_device *)dev;
+        unsigned int id = 0;
+
+        memset(res, 0, sizeof(*res));
+        if (call_xpuml(err, ctx, xpumlDeviceGetId, handle->xpuml, (int *)&id) < 0)
+                goto fail;
+        res->driver_get_device_id_res_u.id = id;
+        return (true);
+
+ fail:
+        error_to_xdr(err, res);
+        return (true);
+}
+
+int
 driver_get_device_minor(struct error *err, struct driver_device *dev, unsigned int *minor)
 {
         struct driver *ctx = driver_get_context();
@@ -370,24 +401,20 @@ driver_get_device_minor(struct error *err, struct driver_device *dev, unsigned i
 bool_t
 driver_get_device_minor_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_minor_res *res, maybe_unused struct svc_req *req)
 {
-//        struct error *err = (struct error[]){0};
-//      struct driver *ctx = (struct driver *)ctxptr;
-//        struct driver_device *handle = (struct driver_device *)dev;
+        struct error *err = (struct error[]){0};
+        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver_device *handle = (struct driver_device *)dev;
         unsigned int minor = 0;
 
         memset(res, 0, sizeof(*res));
-#if 0
         if (call_xpuml(err, ctx, xpumlDeviceGetMinorNumber, handle->xpuml, &minor) < 0)
                 goto fail;
-#endif
         res->driver_get_device_minor_res_u.minor = minor;
         return (true);
 
-#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
-#endif
 }
 
 int
@@ -420,7 +447,7 @@ driver_get_device_busid_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_busid_r
         if (call_xpuml(err, ctx, xpumlDeviceGetPciInfo, handle->xpuml, &pci) < 0)
                 goto fail;
 
-        if (xasprintf(err, &res->driver_get_device_busid_res_u.busid, "%08x:%02x:%02x.0", pci.domain, pci.bus, pci.device) < 0)
+        if (xasprintf(err, &res->driver_get_device_busid_res_u.busid, "%08x:%02x:%02x.%02x", pci.domain, pci.bus, pci.device, pci.function) < 0)
                 goto fail;
         return (true);
 
@@ -451,17 +478,13 @@ bool_t
 driver_get_device_uuid_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_uuid_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-//        struct driver *ctx = (struct driver *)ctxptr;
-//        struct driver_device *handle = (struct driver_device *)dev;
-        char buf[XPUML_DEVICE_UUID_BUFFER_SIZE];
-
-        strcpy(buf, "kunlun2 uuid");
+        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver_device *handle = (struct driver_device *)dev;
+        char buf[XPUML_DEVICE_SERIAL_BUFFER_SIZE];
 
         memset(res, 0, sizeof(*res));
-#if 0
-        if (call_xpuml(err, ctx, xpumlDeviceGetUUID, handle->xpuml, buf, sizeof(buf)) < 0)
+        if (call_xpuml(err, ctx, xpumlDeviceGetSerial, handle->xpuml, buf, sizeof(buf)) < 0)
                 goto fail;
-#endif
         if ((res->driver_get_device_uuid_res_u.uuid = xstrdup(err, buf)) == NULL)
                 goto fail;
         return (true);
@@ -493,19 +516,16 @@ bool_t
 driver_get_device_model_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_model_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-//        struct driver *ctx = (struct driver *)ctxptr;
-//        struct driver_device *handle = (struct driver_device *)dev;
+        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver_device *handle = (struct driver_device *)dev;
         char buf[XPUML_DEVICE_NAME_BUFFER_SIZE];
 
-        strcpy(buf, "kunlun2");
-
         memset(res, 0, sizeof(*res));
-#if 0
         if (call_xpuml(err, ctx, xpumlDeviceGetName, handle->xpuml, buf, sizeof(buf)) < 0)
                 goto fail;
-#endif
         if ((res->driver_get_device_model_res_u.model = xstrdup(err, buf)) == NULL)
                 goto fail;
+
         return (true);
 
  fail:
@@ -535,27 +555,25 @@ bool_t
 driver_get_device_brand_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_brand_res *res, maybe_unused struct svc_req *req)
 {
         struct error *err = (struct error[]){0};
-//        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver *ctx = (struct driver *)ctxptr;
         struct driver_device *handle = (struct driver_device *)dev;
-//        xpumlBrandType_t brand;
+        xpumlDeviceArchitecture_t arch; 
         const char *buf;
 
         memset(res, 0, sizeof(*res));
-#if 0
-        if (call_xpuml(err, ctx, xpumlDeviceGetBrand, handle->xpuml, &brand) < 0)
+        if (call_xpuml(err, ctx, xpumlDeviceGetArchitecture, handle->xpuml, &arch) < 0)
                 goto fail;
-        switch (brand) {
-        case XPUML_BRAND_QUADRO:
-                buf = "Quadro";
-                break;
-        case XPUML_BRAND_NVIDIA_CLOUD_GAMING:
-                buf = "CloudGaming";
+
+        switch (arch) {
+            case XPUML_DEVICE_ARCH_KL1:
+            case XPUML_DEVICE_ARCH_KL2:
+            case XPUML_DEVICE_ARCH_KL3:
+                buf = "Kunlun";
                 break;
         default:
                 buf = "Unknown";
         }
-#endif
-        buf = "Kunlun";
+
         if ((res->driver_get_device_brand_res_u.brand = xstrdup(err, buf)) == NULL)
                 goto fail;
         return (true);
@@ -587,26 +605,22 @@ driver_get_device_arch(struct error *err, struct driver_device *dev, char **arch
 bool_t
 driver_get_device_arch_1_svc(ptr_t ctxptr, ptr_t dev, driver_get_device_arch_res *res, maybe_unused struct svc_req *req)
 {
-//        struct error *err = (struct error[]){0};
-//        struct driver *ctx = (struct driver *)ctxptr;
-//        struct driver_device *handle = (struct driver_device *)dev;
-        int major = 1, minor = 1;
+        struct error *err = (struct error[]){0};
+        struct driver *ctx = (struct driver *)ctxptr;
+        struct driver_device *handle = (struct driver_device *)dev;
+        xpumlDeviceArchitecture_t arch; 
 
         memset(res, 0, sizeof(*res));
-#if 0
-        if (call_xpuml(err, ctx, xpumlDeviceGetCudaComputeCapability, handle->xpuml, &major, &minor) < 0)
+        if (call_xpuml(err, ctx, xpumlDeviceGetArchitecture, handle->xpuml, &arch) < 0)
                 goto fail;
-#endif
 
-        res->driver_get_device_arch_res_u.arch.major = (unsigned int)major;
-        res->driver_get_device_arch_res_u.arch.minor = (unsigned int)minor;
+        res->driver_get_device_arch_res_u.arch.major = (unsigned int)arch;
+        res->driver_get_device_arch_res_u.arch.minor = 0;
         return (true);
 
-#if 0
  fail:
         error_to_xdr(err, res);
         return (true);
-#endif
 }
 
 int

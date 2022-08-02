@@ -29,14 +29,9 @@ union driver_get_rm_version_res switch (int errcode) {
                 string errmsg<>;
 };
 
-struct driver_cuda_version {
-        unsigned int major;
-        unsigned int minor;
-};
-
 union driver_get_cuda_version_res switch (int errcode) {
         case 0:
-                driver_cuda_version vers;
+                string vers<>;
         default:
                 string errmsg<>;
 };
@@ -70,6 +65,13 @@ union driver_get_device_res switch (int errcode) {
 union driver_get_device_minor_res switch (int errcode) {
         case 0:
                 unsigned int minor;
+        default:
+                string errmsg<>;
+};
+
+union driver_get_device_id_res switch (int errcode) {
+        case 0:
+                unsigned int id;
         default:
                 string errmsg<>;
 };
@@ -179,6 +181,7 @@ program DRIVER_PROGRAM {
                 driver_get_device_arch_res DRIVER_GET_DEVICE_ARCH(ptr_t, ptr_t) = 10;
                 driver_get_device_model_res DRIVER_GET_DEVICE_MODEL(ptr_t, ptr_t) = 11;
                 driver_get_device_brand_res DRIVER_GET_DEVICE_BRAND(ptr_t, ptr_t) = 12;
+                driver_get_device_id_res DRIVER_GET_DEVICE_ID(ptr_t, ptr_t) = 13;
                 driver_set_cxpu_instance_memory_limit_res DRIVER_SET_CXPU_INSTANCE_MEMORY_LIMIT(ptr_t, ptr_t, ptr_t, unsigned int, uint64_t) = 17;
                 driver_create_cxpu_instance_res DRIVER_CREATE_CXPU_INSTANCE(ptr_t, ptr_t, ptr_t) = 18;
                 driver_destroy_cxpu_instance_res DRIVER_DESTROY_CXPU_INSTANCE(ptr_t, ptr_t, ptr_t) = 19;

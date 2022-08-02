@@ -141,7 +141,9 @@ typedef struct xpumlProcessInfo_st
                                             //! Under WDDM, \ref XPUML_VALUE_NOT_AVAILABLE is always reported
                                             //! because Windows KMD manages all the memory and not the KUNLUN driver
 
-    unsigned long long reserved[13];        //!< Reserved, sizeof() = 8B * 16
+    unsigned int        root_ns_pid;        //!< root namespace PID
+    unsigned int        reserved_u32;       //!< Reserved
+    unsigned long long  reserved[12];       //!< Reserved
 } xpumlProcessInfo_t;
 
 typedef struct xpumlDeviceAttributes_st
@@ -159,7 +161,9 @@ typedef struct xpumlDeviceAttributes_st
     unsigned long long globalMemorySizeMB;  //!< Device global memory size (in MiB)
     unsigned long long l3MemorySizeMB;      //!< Device l3 memory size (in MiB)
 
-    unsigned long long reserved[9];         //!< Reserved, sizeof() = 8B * 16
+    unsigned long long sn[2];               //!< Serial Number
+
+    unsigned long long reserved[7];         //!< Reserved
 } xpumlDeviceAttributes_t;
 
 /**
@@ -780,7 +784,7 @@ const DECLDIR char* xpumlErrorString(xpumlReturn_t result);
 /**
  * Buffer size guaranteed to be large enough for \ref xpumlDeviceGetSerial
  */
-#define XPUML_DEVICE_SERIAL_BUFFER_SIZE                30
+#define XPUML_DEVICE_SERIAL_BUFFER_SIZE                (16 + 1)
 
 /** @} */
 
@@ -977,6 +981,22 @@ xpumlReturn_t DECLDIR xpumlDeviceGetAttributes(xpumlDevice_t device, xpumlDevice
 xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevice_t *device);
 
 /**
+ * Retrieves physical id for the device. The physical id for the device is such that the xpu device node file for
+ * each XPU will have the form /dev/xpu[physical id].
+ *
+ * @param devID                                The physical device id of the target XPU
+ * @param device                               Reference in which to return the device handle
+ *
+ * @returns 
+ *         - \ref XPUML_SUCCESS                 if \a name has been set
+ *         - \ref XPUML_ERROR_UNINITIALIZED     if the library has not been successfully initialized
+ *         - \ref XPUML_ERROR_INVALID_ARGUMENT  if \a device is invalid
+ *         - \ref XPUML_ERROR_XPU_IS_LOST       if the target XPU has fallen off the bus or is otherwise inaccessible
+ *         - \ref XPUML_ERROR_UNKNOWN           on any unexpected error
+ */
+xpumlReturn_t DECLDIR xpumlDeviceGetId(xpumlDevice_t device, int *devId);
+
+/**
  * Acquire the handle for a particular device, based on its board serial number.
  *
  * For Fermi &tm; or newer fully supported devices.
@@ -1072,7 +1092,7 @@ xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevic
  *
  * The name is an alphanumeric string that denotes a particular product, e.g. Tesla &tm; C2070. It will not
  * exceed 96 characters in length (including the NULL terminator).  See \ref
- * xpumlConstants::XPUML_DEVICE_NAME_V2_BUFFER_SIZE.
+ * xpumlConstants::XPUML_DEVICE_NAME_BUFFER_SIZE.
  *
  * When used with MIG device handles the API returns MIG device names which can be used to identify devices
  * based on their attributes.
@@ -1089,7 +1109,7 @@ xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevic
  *         - \ref XPUML_ERROR_XPU_IS_LOST       if the target XPU has fallen off the bus or is otherwise inaccessible
  *         - \ref XPUML_ERROR_UNKNOWN           on any unexpected error
  */
-//xpumlReturn_t DECLDIR xpumlDeviceGetName(xpumlDevice_t device, char *name, unsigned int length);
+xpumlReturn_t DECLDIR xpumlDeviceGetName(xpumlDevice_t device, char *name, unsigned int length);
 
 /**
  * Retrieves the XPUML index of this device.
@@ -1147,7 +1167,7 @@ xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevic
  *         - \ref XPUML_ERROR_XPU_IS_LOST       if the target XPU has fallen off the bus or is otherwise inaccessible
  *         - \ref XPUML_ERROR_UNKNOWN           on any unexpected error
  */
-//xpumlReturn_t DECLDIR xpumlDeviceGetSerial(xpumlDevice_t device, char *serial, unsigned int length);
+xpumlReturn_t DECLDIR xpumlDeviceGetSerial(xpumlDevice_t device, char *serial, unsigned int length);
 
 /**
  * Retrieve the status for a given p2p capability index between a given pair of XPU
@@ -1193,8 +1213,7 @@ xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevic
 //xpumlReturn_t DECLDIR xpumlDeviceGetUUID(xpumlDevice_t device, char *uuid, unsigned int length);
 
 /**
- * Retrieves minor number for the device. The minor number for the device is such that the xpu device node file for
- * each XPU will have the form /dev/xpu[minor number].
+ * Retrieves minor number for the device.
  *
  * For all products.
  * Supported only for Linux
@@ -1209,7 +1228,7 @@ xpumlReturn_t DECLDIR xpumlDeviceGetHandleByIndex(unsigned int index, xpumlDevic
  *         - \ref XPUML_ERROR_XPU_IS_LOST       if the target XPU has fallen off the bus or is otherwise inaccessible
  *         - \ref XPUML_ERROR_UNKNOWN           on any unexpected error
  */
-//xpumlReturn_t DECLDIR xpumlDeviceGetMinorNumber(xpumlDevice_t device, unsigned int *minorNumber);
+xpumlReturn_t DECLDIR xpumlDeviceGetMinorNumber(xpumlDevice_t device, unsigned int *minorNumber);
 
 /**
  * Retrieves the PCI attributes of this device.
@@ -2408,8 +2427,8 @@ xpumlReturn_t DECLDIR xpumlDeviceSetSriovVfNum(xpumlDevice_t device, int vfNum);
 //xpumlReturn_t DECLDIR xpumlDeviceGetBusType(xpumlDevice_t device, xpumlBusType_t *type);
 
 
-#define XPUML_MEM_UNLIMIT (~0ull)
-#define XPUML_CXPU_USER_ID_LEN (12)
+#define XPUML_CXPU_MEM_UNLIMIT (~0ull)
+#define XPUML_CXPU_INST_ID_LEN (12)
 
 /**
  * @brief xpumlDeviceSetCxpuInstanceMemoryLimit
@@ -2417,6 +2436,7 @@ xpumlReturn_t DECLDIR xpumlDeviceSetSriovVfNum(xpumlDevice_t device, int vfNum);
  * See \ref xpumlMemoryLocation_t for details on available memoryType.
  *
  * @param device                               The identifier of the target device
+ * @param instanceId                           The identifier of cxpu instance
  * @param memoryType                           The target memory type
  * @param limitBytes                           The memory limit bytes of the memoryType
  *
@@ -2426,12 +2446,28 @@ xpumlReturn_t DECLDIR xpumlDeviceSetSriovVfNum(xpumlDevice_t device, int vfNum);
  *         - \ref XPUML_ERROR_INVALID_ARGUMENT  if \device is invalid or \type is NULL
  *         - \ref XPUML_ERROR_UNKNOWN           on any unexpected error
  */
-xpumlReturn_t DECLDIR xpumlDeviceSetCxpuInstanceMemoryLimit(xpumlDevice_t device, char *user_id,
+xpumlReturn_t DECLDIR xpumlDeviceSetCxpuInstanceMemoryLimit(xpumlDevice_t device, char *instanceId,
         xpumlMemoryLocation_t memType, unsigned long long limitBytes);
-xpumlReturn_t DECLDIR xpumlDeviceCreateCxpuInstance(xpumlDevice_t device,
-        char *user_id);
-xpumlReturn_t DECLDIR xpumlDeviceDestroyCxpuInstance(xpumlDevice_t device,
-        char *user_id);
+
+/**
+ * @brief xpumlDeviceCreateCxpuInstance
+ *
+ * @param device                               The identifier of the target device
+ * @param instanceId                           The identifier of cxpu instance
+ *
+ * @returns
+ */
+xpumlReturn_t DECLDIR xpumlDeviceCreateCxpuInstance(xpumlDevice_t device, char *instanceId);
+
+/**
+ * @brief xpumlDeviceDestroyCxpuInstance
+ *
+ * @param device                               The identifier of the target device
+ * @param instanceId                           The identifier of cxpu instance
+ *
+ * @returns
+ */
+xpumlReturn_t DECLDIR xpumlDeviceDestroyCxpuInstance(xpumlDevice_t device, char *instanceId);
 
 /** @} */
 

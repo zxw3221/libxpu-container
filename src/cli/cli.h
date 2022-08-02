@@ -53,8 +53,8 @@ struct context {
 
         /* cxpu */
         bool cxpu_enable;
-        char cxpu_user_id[CXPU_MAX_USER_ID_LEN + 1];
-        uint64_t cxpu_mem_limit_inbytes;
+        char cxpu_instance_id[CXPU_MAX_INSTANCE_ID_LEN + 1];
+        uint64_t cxpu_container_mem_limit;
 
         char *devices;
         char *mig_config;
@@ -77,7 +77,6 @@ int new_devices(struct error *err, const struct nvc_device_info *dev, struct dev
 void free_devices(struct devices *d);
 
 int print_nvcaps_device_from_proc_file(struct nvc_context *, const char*, const char*);
-int print_all_mig_minor_devices(const struct nvc_device_node *);
 
 int select_devices(
     struct error *err,

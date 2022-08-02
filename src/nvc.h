@@ -42,7 +42,7 @@ extern "C" {
 #define NVC_NVCAPS_STYLE_PROC 1
 #define NVC_NVCAPS_STYLE_DEV  2
 
-#define CXPU_MAX_USER_ID_LEN 12
+#define CXPU_MAX_INSTANCE_ID_LEN 12
 
 struct nvc_context;
 struct nvc_container;
@@ -60,9 +60,11 @@ struct nvc_config {
         uid_t uid;
         gid_t gid;
 
+        //cxpu config
         bool cxpu_enable;
-        char cxpu_user_id[CXPU_MAX_USER_ID_LEN + 1];
-        uint64_t cxpu_mem_limit_inbytes;
+        char cxpu_instance_id[CXPU_MAX_INSTANCE_ID_LEN + 1];
+        uint64_t cxpu_container_mem_limit;
+        uint32_t cxpu_container_mem_count;
 };
 
 struct nvc_device_node {
@@ -168,6 +170,8 @@ int nvc_mig_monitor_global_caps_mount(struct nvc_context *, const struct nvc_con
 int nvc_device_mig_caps_mount(struct nvc_context *, const struct nvc_container *, const struct nvc_device *);
 
 int nvc_ldcache_update(struct nvc_context *, const struct nvc_container *);
+
+int nvc_cxpu_config(struct nvc_context *ctx, unsigned int device_id);
 
 const char *nvc_error(struct nvc_context *);
 
