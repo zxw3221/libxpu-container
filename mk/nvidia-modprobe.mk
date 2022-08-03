@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2018, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2017-2018, KUNLUNXIN CORPORATION. All rights reserved.
 #
 
 include $(MAKE_DIR)/common.mk
@@ -7,19 +7,19 @@ include $(MAKE_DIR)/common.mk
 ##### Source definitions #####
 
 VERSION        := 495.44
-PREFIX         := nvidia-modprobe-$(VERSION)
-URL            := https://github.com/NVIDIA/nvidia-modprobe/archive/$(VERSION).tar.gz
+PREFIX         := xpu-modprobe-$(VERSION)
+URL            := https://github.com/zxw3221/xpu-modprobe/archive/$(VERSION).tar.gz
 
 SRCS_DIR       := $(DEPS_DIR)/src/$(PREFIX)
 MODPROBE_UTILS := $(SRCS_DIR)/modprobe-utils
 
-LIB_STATIC     := $(MODPROBE_UTILS)/libnvidia-modprobe-utils.a
-LIB_INCS       := $(MODPROBE_UTILS)/nvidia-modprobe-utils.h \
+LIB_STATIC     := $(MODPROBE_UTILS)/libxpu-modprobe-utils.a
+LIB_INCS       := $(MODPROBE_UTILS)/xpu-modprobe-utils.h \
                   $(MODPROBE_UTILS)/pci-enum.h
-LIB_SRCS       := $(MODPROBE_UTILS)/nvidia-modprobe-utils.c \
+LIB_SRCS       := $(MODPROBE_UTILS)/xpu-modprobe-utils.c \
                   $(MODPROBE_UTILS)/pci-sysfs.c
 
-PATCH_FILE     := $(MAKE_DIR)/nvidia-modprobe.patch
+PATCH_FILE     := $(MAKE_DIR)/xpu-modprobe.patch
 
 ##### Flags definitions #####
 

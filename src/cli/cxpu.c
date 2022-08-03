@@ -111,6 +111,9 @@ cxpu_command(const struct context *ctx)
         } else {
             nvc_cfg->cxpu_container_mem_limit = ctx->cxpu_container_mem_limit;
         }
+        // if no resource limit have been set, disable the cxpu
+        if (nvc_cfg->cxpu_container_mem_limit == XPUML_CXPU_MEM_UNLIMIT)
+            nvc_cfg->cxpu_enable = false;
         strncpy(nvc_cfg->cxpu_instance_id, ctx->cxpu_instance_id, CXPU_MAX_INSTANCE_ID_LEN);
         if (libnvc.init(nvc, nvc_cfg, ctx->init_flags) < 0) {
                 warnx("initialization error: %s", libnvc.error(nvc));
@@ -145,7 +148,7 @@ cxpu_command(const struct context *ctx)
 
 
         if (devices.ngpus > 0) {
-            nvc->cfg.cxpu_container_mem_count = (uint32_t)devices.ngpus;
+            nvc->cfg.cxpu_container_mem_count = devices.ngpus;
         } else {
             nvc->cfg.cxpu_container_mem_count = 1;
         }

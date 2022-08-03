@@ -1,9 +1,9 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: libxpu-container
-Source: https://github.com/NVIDIA/libxpu-container
+Source: https://github.com/zxw3221/libxpu-container
 
 Files: *
-Copyright: 2017-2020 NVIDIA CORPORATION <cudatools@nvidia.com>
+Copyright: 2017-2020 KUNLUNXIN CORPORATION <kunlunxin.com.cn>
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ License: Apache-2.0
  limitations under the License.
 
 Files: src/elftool.*
-Copyright: 2017-2020 NVIDIA CORPORATION <cudatools@nvidia.com>
+Copyright: 2017-2020 KUNLUNXIN CORPORATION <kunlunxin.com.cn>
 Comment: If these files have been compiled and dynamically linked against libelf from the
  elfutils package (usually characterized by the definition of the macro `WITH_LIBELF'),
  the following license notice covers the use of said library.
@@ -42,7 +42,7 @@ License: LGPL-3+
  `/usr/share/common-licenses/GPL-3' and `/usr/share/common-licenses/LGPL-3'.
 
 Files: src/elftoolchain.*
-Copyright: 2017-2020 NVIDIA CORPORATION <cudatools@nvidia.com>
+Copyright: 2017-2020 KUNLUNXIN CORPORATION <kunlunxin.com.cn>
 License: BSD-3-Clause
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@ License: BSD-3-Clause
   * Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
     documentation and/or other materials provided with the distribution.
-  * Neither the name of NVIDIA CORPORATION nor the names of its
+  * Neither the name of KUNLUNXIN CORPORATION nor the names of its
     contributors may be used to endorse or promote products derived
     from this software without specific prior written permission.
  .
@@ -68,8 +68,8 @@ License: BSD-3-Clause
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Files: src/nvidia-modprobe.*
-Copyright: 2017-2020 NVIDIA CORPORATION <cudatools@nvidia.com>
+Files: src/xpu-modprobe.*
+Copyright: 2017-2020 KUNLUNXIN CORPORATION <kunlunxin.com.cn>
 License: MIT
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation

@@ -20,6 +20,7 @@
 #include "options.h"
 #include "utils.h"
 #include "xfuncs.h"
+#include "xpuml.h"
 
 #define MAX_BINS (nitems(utility_bins) + \
                   nitems(compute_bins))
@@ -412,8 +413,13 @@ int nvc_cxpu_config(struct nvc_context *ctx, unsigned int device_index)
 
     if (ctx->cfg.cxpu_enable) {
         driver_create_cxpu_instance(err, dev, ctx->cfg.cxpu_instance_id);
-        driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_instance_id, 0,
+        if (ctx->cfg.cxpu_container_mem_limit != XPUML_CXPU_MEM_UNLIMIT) {
+            driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_instance_id, 0,
                 ctx->cfg.cxpu_container_mem_limit / ctx->cfg.cxpu_container_mem_count);
+        } else {
+            driver_set_cxpu_instance_memory_limit(err, dev, ctx->cfg.cxpu_instance_id, 0,
+                ctx->cfg.cxpu_container_mem_limit);
+        }
     } else {
         driver_destroy_cxpu_instance(err, dev, ctx->cfg.cxpu_instance_id);
     }

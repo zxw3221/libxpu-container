@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2021, KUNLUNXIN CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -339,7 +339,7 @@ deb: prefix:=/usr
 deb: libdir:=/usr/lib/@DEB_HOST_MULTIARCH@
 deb: install
 	$(CP) -T $(PKG_DIR)/deb $(DESTDIR)/debian
-	cd $(DESTDIR) && debuild -eDISTRIB -eSECTION -eLIBNVIDIA_CONTAINER0_DEPENDENCY --dpkg-buildpackage-hook='debian/prepare %v' -a$(ARCH) -us -uc -B
+	cd $(DESTDIR) && debuild -eDISTRIB -eSECTION -eLIBXPU_CONTAINER0_DEPENDENCY --dpkg-buildpackage-hook='debian/prepare %v' -a$(ARCH) -us -uc -B
 	cd $(DESTDIR) && (yes | debuild clean || yes | debuild -- clean)
 
 rpm: DESTDIR:=$(DIST_DIR)/$(LIB_NAME)_$(VERSION)_$(ARCH)

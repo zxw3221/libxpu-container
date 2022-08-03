@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2021, KUNLUNXIN CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,14 +99,14 @@ docker-all: $(AMD64_TARGETS) $(X86_64_TARGETS) \
 --%: TARGET_PLATFORM = $(*)
 --%: VERSION = $(patsubst $(OS)%-$(ARCH),%,$(TARGET_PLATFORM))
 --%: BASEIMAGE = $(OS):$(VERSION)
---%: BUILDIMAGE = nvidia/$(LIB_NAME)/$(OS)$(VERSION)-$(ARCH)
+--%: BUILDIMAGE = xpu/$(LIB_NAME)/$(OS)$(VERSION)-$(ARCH)
 --%: DOCKERFILE = $(MAKE_DIR)/Dockerfile.$(OS)
 --%: ARTIFACTS_DIR = $(DIST_DIR)/$(OS)$(VERSION)/$(ARCH)
 --%: docker-build-%
 	@
 
 # Define verify targets to run a minimal sanity check that everything has built
-# and runs correctly for a given OS on amd64/x86_64. Requires a working NVIDIA
+# and runs correctly for a given OS on amd64/x86_64. Requires a working XPU 
 # driver installation on a native amd64/x86_64 machine.
 $(patsubst %, %-verify, $(AMD64_TARGETS)): ARCH := amd64
 $(patsubst %, %-verify, $(AMD64_TARGETS)): %-verify: --verify-%
@@ -124,7 +124,7 @@ docker-amd64-verify: $(patsubst %, %-verify, $(AMD64_TARGETS)) \
 --amazonlinux%: OS := amazonlinux
 
 # For the ubuntu18.04 arm64 target we add a dependency on libxpu-container0 to ensure that libxpu-container-tools also supports Jetson devices
---ubuntu18.04-arm64: LIBNVIDIA_CONTAINER0_DEPENDENCY = libxpu-container0 (= 0.9.0~beta.1) | libxpu-container0 (>= 0.10.0+jetpack)
+--ubuntu18.04-arm64: LIBXPU_CONTAINER0_DEPENDENCY = libxpu-container0 (= 0.9.0~beta.1) | libxpu-container0 (>= 0.10.0+jetpack)
 
 # private centos target with overrides
 --centos%: OS := centos
@@ -165,7 +165,7 @@ docker-build-%: $(ARTIFACTS_DIR)
 	    --build-arg CFLAGS="$(CFLAGS)" \
 	    --build-arg LDLIBS="$(LDLIBS)" \
 	    --build-arg REVISION="$(REVISION)" \
-	    --build-arg LIBNVIDIA_CONTAINER0_DEPENDENCY="$(LIBNVIDIA_CONTAINER0_DEPENDENCY)" \
+	    --build-arg LIBXPU_CONTAINER0_DEPENDENCY="$(LIBXPU_CONTAINER0_DEPENDENCY)" \
 	    $(EXTRA_BUILD_ARGS) \
 	    --tag $(BUILDIMAGE) \
 	    --file $(DOCKERFILE) .
@@ -179,13 +179,13 @@ docker-verify-%: %
 	@echo "Verifying for $(TARGET_PLATFORM)"
 	$(DOCKER) run \
 	    --privileged \
-	    --runtime=nvidia  \
-	    -e NVIDIA_VISIBLE_DEVICES=all \
+	    --runtime=xpu \
+	    -e CXPU_VISIBLE_DEVICES=all \
 	    --rm $(BUILDIMAGE) \
 	    bash -c "make install; LD_LIBRARY_PATH=/usr/local/lib/  xpu-container-cli -k -d /dev/tty info"
 
 docker-clean:
-	IMAGES=$$(docker images "nvidia/$(LIB_NAME)/*" --format="{{.ID}}"); \
+	IMAGES=$$(docker images "xpu/$(LIB_NAME)/*" --format="{{.ID}}"); \
 	if [ "$${IMAGES}" != "" ]; then \
 	    docker rmi -f $${IMAGES}; \
 	fi

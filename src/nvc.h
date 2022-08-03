@@ -64,7 +64,7 @@ struct nvc_config {
         bool cxpu_enable;
         char cxpu_instance_id[CXPU_MAX_INSTANCE_ID_LEN + 1];
         uint64_t cxpu_container_mem_limit;
-        uint32_t cxpu_container_mem_count;
+        uint64_t cxpu_container_mem_count;
 };
 
 struct nvc_device_node {

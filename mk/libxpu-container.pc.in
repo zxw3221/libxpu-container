@@ -12,9 +12,9 @@ libdir=$libdir
 includedir=$includedir
 
 Name: libxpu-container
-Description: NVIDIA container library
+Description: XPU container library
 Version: $VERSION
-Libs: -L\${libdir} -lnvidia-container
+Libs: -L\${libdir} -lxpu-container
 Libs.private: $PRIVATE_LIBS
 Cflags: -I\${includedir}
 EOF
